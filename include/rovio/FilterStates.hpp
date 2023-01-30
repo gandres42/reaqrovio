@@ -540,6 +540,7 @@ class FilterState: public LWF::FilterState<State<nMax,nLevels,patchSize,nCam,nPo
   mutable MXD featureOutputCov_;
   cv::Mat img_[nCam];     /**<Mainly used for drawing.*/
   cv::Mat patchDrawing_;  /**<Mainly used for drawing.*/
+  cv::Mat patchDrawingClean_;  /**<Mainly used for drawing.*/
   int drawPB_;  /**<Size of border around patch.*/
   int drawPS_;  /**<Size of patch with border for drawing.*/
   double imgTime_;        /**<Time of the last image, which was processed.*/

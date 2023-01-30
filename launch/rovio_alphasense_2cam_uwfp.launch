@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample ROVIO Node Launch File with Options -->
+<launch>
+  <node pkg="rovio" type="rovio_node" name="rovio" output="screen" clear_params="true" required="true">
+
+    <!-- Config File -->
+    <param name="filter_config" value="$(find rovio)/cfg/flatplateUW/rovio.info"/>
+
+    <!-- Camera Calibration YAML File -->
+    <param name="camera0_config" value="$(find rovio)/cfg/flatplateUW/cam0.yaml"/>
+    <param name="camera1_config" value="$(find rovio)/cfg/flatplateUW/cam1.yaml"/>
+    <!-- <param name="camera2_config" value="$(find rovio)/cfg/5cam_exp_kalibr/cam2.yaml"/>
+    <param name="camera3_config" value="$(find rovio)/cfg/5cam_exp_kalibr/cam3.yaml"/>
+    <param name="camera4_config" value="$(find rovio)/cfg/5cam_exp_kalibr/cam4.yaml"/> -->
+
+    <!-- Input Topics -->
+    <remap from="imu0" to="/alphasense_driver_ros/imu"/>
+    <remap from="cam0/image_raw" to="/alphasense_driver_ros/cam0"/>
+    <remap from="cam1/image_raw" to="/alphasense_driver_ros/cam1"/>
+    <!-- <remap from="cam2/image_raw" to="/alphasense_driver_ros/cam2"/>
+    <remap from="cam3/image_raw" to="/alphasense_driver_ros/cam3"/>
+    <remap from="cam4/image_raw" to="/alphasense_driver_ros/cam4"/> -->
+
+  </node>
+</launch>

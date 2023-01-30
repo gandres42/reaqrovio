@@ -4,34 +4,46 @@ Common
 {
 	doVECalibration false;		Should the camera-IMU extrinsics be calibrated online
 	depthType 1;				Type of depth parametrization (0: normal, 1: inverse depth, 2: log, 3: hyperbolic)
-	verbose true;				Is the verbose active
+	verbose false;				Is the verbose active
     healthCheck true;
-
 }
 Camera0
 {
 	CalibrationFile ;												Camera-Calibration file for intrinsics
-	qCM_x  0.00666398307551;										X-entry of IMU to Camera quaterion (Hamilton)
-	qCM_y  -0.0079168224269;										Y-entry of IMU to Camera quaterion (Hamilton)
-	qCM_z  -0.701985972528;											Z-entry of IMU to Camera quaterion (Hamilton)
-	qCM_w   0.712115587266;											W-entry of IMU to Camera quaterion (Hamilton)
-	MrMC_x -0.0111674199187;											X-entry of IMU to Camera vector (expressed in IMU CF) [m]
-	MrMC_y -0.0574640920022;										Y-entry of IMU to Camera vector (expressed in IMU CF) [m]
-	MrMC_z 0.0207586947896;											Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+qCM_x   -0.5000111902463383;
+qCM_y   0.5023702148705771;
+qCM_z   -0.5001745186832105;
+qCM_w   -0.4974318322135698;
+MrMC_x  0.048239411956890264;
+MrMC_y  -0.009660665374475496;
+MrMC_z  -0.05062089371978193;
+										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
 }
 Camera1
 {
-	CalibrationFile ;												Camera-Calibration file for intrinsics
-	qCM_x  0.00151329637706;										X-entry of IMU to Camera quaterion (Hamilton)
-	qCM_y  -0.0123329249764;										Y-entry of IMU to Camera quaterion (Hamilton)
-	qCM_z  -0.702657352863;											Z-entry of IMU to Camera quaterion (Hamilton)
-	qCM_w  0.711419885414;											W-entry of IMU to Camera quaterion (Hamilton)
-	MrMC_x -0.0091929160801;											X-entry of IMU to Camera vector (expressed in IMU CF) [m]
-	MrMC_y 0.0540646643676;										Y-entry of IMU to Camera vector (expressed in IMU CF) [m]
-	MrMC_z 0.0190387660614;											Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+	CalibrationFile ;											Camera-Calibration file for intrinsics
+qCM_x   0.501163753311785;
+qCM_y   0.5012060273085598;
+qCM_z   0.49914904772965407;
+qCM_w   -0.49847531403931633;
+MrMC_x  0.06173856415488615;
+MrMC_y  0.00976758859170145;
+MrMC_z  -0.050699163827628894;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+}
+Camera2
+{
+	CalibrationFile ;											Camera-Calibration file for intrinsics
+qCM_x   -0.003079702626236617;
+qCM_y   0.9999897260236406;
+qCM_z   0.0006085774283310693;
+qCM_w   0.003270001897873879;
+MrMC_x  0.009250129629087845;
+MrMC_y  0.009608189706080876;
+MrMC_z  -0.03874359685908018;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
 }
 Init
 {
+    
     State
     {
         pos_0 0;			X-entry of initial position (world to IMU in world) [m]
@@ -40,12 +52,12 @@ Init
         vel_0 0;			X-entry of initial velocity (robocentric, IMU) [m/s]
         vel_1 0;			Y-entry of initial velocity (robocentric, IMU) [m/s]
         vel_2 0;			Z-entry of initial velocity (robocentric, IMU) [m/s]
-        acb_0 0;			X-entry of accelerometer bias [m/s^2]
-        acb_1 0;			Y-entry of accelerometer bias [m/s^2]
-        acb_2 0;			Z-entry of accelerometer bias [m/s^2]
-        gyb_0 0;			X-entry of gyroscope bias [rad/s]
-        gyb_1 0;			Y-entry of gyroscope bias [rad/s]
-        gyb_2 0;			Z-entry of gyroscope bias [rad/s]
+        acb_0 -0.1552914432;			X-entry of accelerometer bias [m/s^2]
+        acb_1 0.0410835103;			Y-entry of accelerometer bias [m/s^2]
+        acb_2 0.0940756672;			Z-entry of accelerometer bias [m/s^2]
+        gyb_0 -0.000979633;			X-entry of gyroscope bias [rad/s]
+        gyb_1 0.0029701135;			Y-entry of gyroscope bias [rad/s]
+        gyb_2 0.002559034;			Z-entry of gyroscope bias [rad/s]
         att_x 0;			X-entry of initial attitude (IMU to world, Hamilton)
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
@@ -78,7 +90,9 @@ ImgUpdate
 	maxNumIteration 20;
     doPatchWarping true;										Should the patches be warped
     doFrameVisualisation true;									Should the frames be visualized
-    visualizePatches false;										Should the patches be visualized
+    publishFrames true;                                         Should the frames (with tracked features) be published
+    showCandidates true;                                       Should the possible feature candidates be displayed
+    visualizePatches true;										Should the patches be visualized
     useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
     startLevel 2;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
@@ -124,6 +138,13 @@ ImgUpdate
     noiseGainForOffCamera 10.0;									Factor added on update noise if not main camera
     discriminativeSamplingDistance 0.02;						Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).
     discriminativeSamplingGain 1.1;								Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).
+    maxAllowedFeatureDistance 25.0;                             Max allowed estimated feature distance after performing update, remove features with very far away estimated depth and clustered features during backward motion.
+    minTimeBeforeFeaDistCheck 1.0;                              Min time allowed in secd before maxAllowedFeatureDistance check is applied. Typically 1.0 second for camera at 20 Hz i.e. 20 updates have been applied
+    useDepthFromLiDAR false;                                     Enable or Disable usage of LiDAR direct depth for features
+    lidarDepthCalcMode 0;                                      Use Patch(0) or Line(1) for Depth Calculation
+    depthSearchWindowWidth 15; 23;                              Horizontal size of direct depth search window
+    depthSearchWindowHeight 7; 47;                              Vertical size of direct depth search window
+    directDepInitCovScaleFactor 1e-3;                           Factor to scale depth initialization covaraince in case of direct depth initialization
     MotionDetection
     {
     	isEnabled 0;											Is the motion detection enabled
@@ -140,9 +161,12 @@ ImgUpdate
             vel_2 0.01;											Z-Covariance of zero velocity update [m^2/s^2]
         }
         MahalanobisTh0 7.689997599999999;						Mahalanobid distance for zero velocity updates
-        minNoMotionTime 1.0;									Min duration of no-motion
-        isEnabled 0;											Should zero velocity update be applied, only works if MotionDetection.isEnabled is true
+        minNoMotionTime 1;									Min duration of no-motion
+        isEnabled 0;											Should zero velocity update be applied, only woroks if MotionDetectin.isEnabled is true
     }
+
+    addGlobalBest false;                                         Should the best features of all cameras be added (true) or the best of each camera (false)
+    histogramEqualize false;
 }
 Prediction
 {
@@ -151,22 +175,28 @@ Prediction
         pos_0 1e-4;								X-covariance parameter of position prediction [m^2/s]
         pos_1 1e-4;								Y-covariance parameter of position prediction [m^2/s]
         pos_2 1e-4;								Z-covariance parameter of position prediction [m^2/s]
-        vel_0 4e-6;								X-covariance parameter of velocity prediction [m^2/s^3]
-        vel_1 4e-6;								Y-covariance parameter of velocity prediction [m^2/s^3]
-        vel_2 4e-6;								Z-covariance parameter of velocity prediction [m^2/s^3]
-        acb_0 1e-8;								X-covariance parameter of accelerometer bias prediction [m^2/s^5]
-        acb_1 1e-8;								Y-covariance parameter of accelerometer bias prediction [m^2/s^5]
-        acb_2 1e-8;								Z-covariance parameter of accelerometer bias prediction [m^2/s^5]
-        gyb_0 3.8e-7;							X-covariance parameter of gyroscope bias prediction [rad^2/s^3]
-        gyb_1 3.8e-7;							Y-covariance parameter of gyroscope bias prediction [rad^2/s^3]
-        gyb_2 3.8e-7;							Z-covariance parameter of gyroscope bias prediction [rad^2/s^3]
+        vel_0 1e-7;								X-covariance parameter of velocity prediction [m^2/s^3]
+        vel_1 1e-7;								Y-covariance parameter of velocity prediction [m^2/s^3]
+        vel_2 1e-7;								Z-covariance parameter of velocity prediction [m^2/s^3]
+        acb_0 1.84e-6;								X-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_1 1.84e-6;								Y-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_2 1.84e-6;								Z-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        gyb_0 2.06e-10;							X-covariance parameter of gyroscope bias prediction [rad^2/s^3]
+        gyb_1 2.06e-10;							Y-covariance parameter of gyroscope bias prediction [rad^2/s^3]
+        gyb_2 2.06e-10;							Z-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         vep 1e-8;								Covariance parameter of linear extrinsics prediction [m^2/s]
-        att_0 7.6e-7;							X-Covariance parameter of attitude prediction [rad^2/s]
-        att_1 7.6e-7;							Y-Covariance parameter of attitude prediction [rad^2/s]
-        att_2 7.6e-7;							Z-Covariance parameter of attitude prediction [rad^2/s]
+        att_0 1.09e-7;							X-Covariance parameter of attitude prediction [rad^2/s]
+        att_1 1.09e-7;							Y-Covariance parameter of attitude prediction [rad^2/s]
+        att_2 1.09e-7;							Z-Covariance parameter of attitude prediction [rad^2/s]
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
-        dep 0.0001;							Covariance parameter of distance prediction [m^2/s]
-        nor 0.00001;								Covariance parameter of bearing vector prediction [rad^2/s]
+        dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
+        nor 0.00001;							Covariance parameter of bearing vector prediction [rad^2/s]
+    }
+    GravityVector
+    {
+        g_x 0.0;                                X-Component of gravity vector [m^2/s]
+        g_y 0.0;                                Y-Component of gravity vector [m^2/s]
+        g_z 9.82171;                              Z-Component of gravity vector [m^2/s]
     }
     MotionDetection
     {
@@ -199,7 +229,7 @@ PoseUpdate
 	enableAttitude true;						Should the rotation part be used during the update (e.g. set to fals eif feeding GPS-measurement)
 	noFeedbackToRovio true;						By default the pose update is only used for aligning coordinate frame. Set to false if ROVIO should benefit frome the posed measurements.
 	doInertialAlignmentAtStart true;			Should the transformation between I and W be explicitly computed and set with the first pose measurement.
-	timeOffset 0.0;								Time offset added to the pose measurement timestamps
+	timeOffset 0.00175;								Time offset added to the pose measurement timestamps
     useOdometryCov false;                    Should the UpdateNoise position covariance be scaled using the covariance in the Odometry message
     qVM_x 0;									X-entry of quaterion representing IMU to reference body coordinate frame of pose measurement (Hamilton)
     qVM_y 0;									Y-entry of quaterion representing IMU to reference body coordinate frame of pose measurement (Hamilton)

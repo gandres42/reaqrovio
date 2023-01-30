@@ -230,7 +230,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double discriminativeSamplingDistance_; /**<Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).*/
   double discriminativeSamplingGain_; /**<Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).*/
 
-
   // Temporary
   mutable PixelOutputCT pixelOutputCT_;
   mutable PixelOutput pixelOutput_;
@@ -587,13 +586,14 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     assert(filterState.t_ == meas.aux().imgTime_);
     for(int i=0;i<mtState::nCam_;i++){
       if(doFrameVisualisation_){
-        cvtColor(meas.aux().pyr_[i].imgs_[0], filterState.img_[i], CV_GRAY2RGB);
+        cvtColor(meas.aux().pyr_[i].imgs_[0], filterState.img_[i], cv::COLOR_GRAY2BGR);
       }
     }
     filterState.imgTime_ = filterState.t_;
     filterState.imageCounter_++;
     if(visualizePatches_){
       filterState.patchDrawing_ = cv::Mat::zeros(mtState::nMax_*filterState.drawPS_,(1+2*mtState::nCam_)*filterState.drawPS_,CV_8UC3);
+      filterState.patchDrawingClean_ = cv::Mat::zeros(mtState::nMax_*filterState.drawPS_,(1+2*mtState::nCam_)*filterState.drawPS_,CV_8UC3);
     }
     filterState.state_.aux().activeFeature_ = 0;
     filterState.state_.aux().activeCameraCounter_ = 0;
@@ -671,6 +671,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           // Visualize patch tracking
           if(visualizePatches_){
             f.mpMultilevelPatch_->drawMultilevelPatch(filterState.patchDrawing_,cv::Point2i(2,filterState.drawPB_+ID*filterState.drawPS_),1,false);
+            f.mpMultilevelPatch_->drawMultilevelPatch(filterState.patchDrawingClean_,cv::Point2i(2,filterState.drawPB_+ID*filterState.drawPS_),1,false);
             cv::putText(filterState.patchDrawing_,std::to_string(f.idx_),cv::Point2i(2,10+ID*filterState.drawPS_),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(255,255,255));
           }
           f.log_prediction_ = *f.mpCoordinates_;
@@ -707,10 +708,17 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
               featureOutput_.c().drawText(drawImg_,std::to_string(f.idx_),cv::Scalar(175,175,0));
             }
           }
+          // Comment by Mohit: Drawing multilevelPatch that are in the current active Camera
           if(visualizePatches_){
             if(mlpTemp1_.isMultilevelPatchInFrame(meas.aux().pyr_[activeCamID],featureOutput_.c(),startLevel_,false)){
               mlpTemp1_.extractMultilevelPatchFromImage(meas.aux().pyr_[activeCamID],featureOutput_.c(),startLevel_,false);
               mlpTemp1_.drawMultilevelPatch(filterState.patchDrawing_,cv::Point2i(filterState.drawPB_+(1+2*activeCamID)*filterState.drawPS_,filterState.drawPB_+ID*filterState.drawPS_),1,false);
+
+              mlpTemp2_.extractSinglelevelPatchFromImage(meas.aux().pyr_[activeCamID],featureOutput_.c(),endLevel_,false);
+              mlpTemp2_.drawMultilevelPatch(filterState.patchDrawingClean_,cv::Point2i(filterState.drawPB_+(1+2*activeCamID)*filterState.drawPS_,filterState.drawPB_+ID*filterState.drawPS_),1,false);
+
+              mlpTemp2_.extractSinglelevelPatchFromImage(meas.aux().pyr_[activeCamID],featureOutput_.c(),startLevel_,false);
+              mlpTemp2_.drawMultilevelPatch(filterState.patchDrawingClean_,cv::Point2i(filterState.drawPB_+(2+2*activeCamID)*filterState.drawPS_,filterState.drawPB_+ID*filterState.drawPS_),1,false);
             }
           }
 
@@ -863,7 +871,9 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           if(mlpTemp1_.isMultilevelPatchInFrame(meas.aux().pyr_[activeCamID],featureOutput_.c(),mtState::nLevels_-1,false)){
             mlpTemp1_.extractMultilevelPatchFromImage(meas.aux().pyr_[activeCamID],featureOutput_.c(),mtState::nLevels_-1,false);
             mlpTemp1_.drawMultilevelPatch(filterState.patchDrawing_,cv::Point2i(filterState.drawPB_+(2+2*activeCamID)*filterState.drawPS_,filterState.drawPB_+ID*filterState.drawPS_),1,false);
+            // mlpTemp1_.drawMultilevelPatch(filterState.patchDrawingClean_,cv::Point2i(filterState.drawPB_+(2+2*activeCamID)*filterState.drawPS_,filterState.drawPB_+ID*filterState.drawPS_),1,false);
           }
+          
           if(f.mpStatistics_->status_[activeCamID] == TRACKED){
             cv::rectangle(filterState.patchDrawing_,cv::Point2i((2+2*activeCamID)*filterState.drawPS_,ID*filterState.drawPS_),cv::Point2i((3+2*activeCamID)*filterState.drawPS_-1,(ID+1)*filterState.drawPS_-1),cv::Scalar(0,255,0),1,8,0);
           } else {
@@ -937,12 +947,15 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
     // Remove bad feature.
     float averageScore = filterState.fsm_.getAverageScore(); // TODO: make the following dependent on the ST-score
-    if(verbose_) std::cout << "Removing features: ";
+    // if(verbose_) std::cout << "Removing features: ";
+    // std::cout << "Removing features: ";
     for(unsigned int i=0;i<mtState::nMax_;i++){
       if(filterState.fsm_.isValid_[i]){
         FeatureManager<mtState::nLevels_,mtState::patchSize_,mtState::nCam_>& f = filterState.fsm_.features_[i];
         if(!f.mpStatistics_->isGoodFeature(trackingUpperBound_,trackingLowerBound_)){
-          if(verbose_) std::cout << filterState.fsm_.features_[i].idx_ << ", ";
+          // if(verbose_) std::cout << filterState.fsm_.features_[i].idx_ << ", ";
+          // std::cout << filterState.fsm_.features_[i].idx_ << ", "<< filterState.state_.CfP(i).camID_<<", ";
+          
           filterState.fsm_.isValid_[i] = false;
           filterState.resetFeatureCovariance(i,Eigen::Matrix3d::Identity());
         }
@@ -971,6 +984,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     if(verbose_) std::cout << std::endl;
 
     // Get new features
+    // std::cout << "Have Valid Feature Count :" << filterState.fsm_.getValidCount() << " features in camera "<< std::endl;
+    
     if(filterState.fsm_.getValidCount() < startDetectionTh_*mtState::nMax_){
       // Compute the median depth parameters for each camera, using the state features.
       std::array<double, mtState::nCam_> medianDepthParameters;
@@ -989,11 +1004,13 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         }
         const double t2 = (double) cv::getTickCount();
         if(verbose_) std::cout << "== Detected " << candidates_.size() << " on levels " << endLevel_ << "-" << startLevel_ << " (" << (t2-t1)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
+        // std::cout << "== Detected " << candidates_.size() << " on levels " << endLevel_ << "-" << startLevel_ << " (" << (t2-t1)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
         std::unordered_set<unsigned int> newSet = filterState.fsm_.addBestCandidates(candidates_,meas.aux().pyr_[camID],camID,filterState.t_,
                                                                     endLevel_,startLevel_,(mtState::nMax_-filterState.fsm_.getValidCount())/(mtState::nCam_-camID),nDetectionBuckets_, scoreDetectionExponent_,
                                                                     penaltyDistance_, zeroDistancePenalty_,false,minAbsoluteSTScore_);
         const double t3 = (double) cv::getTickCount();
         if(verbose_) std::cout << "== Got " << filterState.fsm_.getValidCount() << " after adding " << newSet.size() << " features in camera " << camID << " (" << (t3-t2)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
+        // std::cout << "== Got " << filterState.fsm_.getValidCount() << " after adding " << newSet.size() << " features in camera " << camID << " (" << (t3-t2)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
         for(auto it = newSet.begin();it != newSet.end();++it){
           FeatureManager<mtState::nLevels_,mtState::patchSize_,mtState::nCam_>& f = filterState.fsm_.features_[*it];
           f.mpStatistics_->resetStatistics(filterState.t_);

@@ -208,6 +208,12 @@ class MultilevelPatch{
       patches_[i].extractPatchFromImage(pyr.imgs_[i],coorTemp,withBorder);
     }
   }
+
+  void extractSinglelevelPatchFromImage(const ImagePyramid<nLevels>& pyr,const FeatureCoordinates& c, const int l = nLevels-1,const bool withBorder = false){  
+      const auto coorTemp = pyr.levelTranformCoordinates(c,0,l);
+      isValidPatch_[l] = true;
+      patches_[l].extractPatchFromImage(pyr.imgs_[l],coorTemp,withBorder);
+  }
 };
 
 }
