@@ -209,8 +209,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   bool useDirectMethod_;  /**<If true, the innovation term is based directly on pixel intensity errors.
                               If false, the reprojection error is used for the innovation term.*/
   bool doFrameVisualisation_;
+  bool showCandidates_;
   bool visualizePatches_;
   bool verbose_;
+  bool healthCheck_;
   bool removeNegativeFeatureAfterUpdate_;
   bool isZeroVelocityUpdateEnabled_; /**<Should zero velocity updates be performed*/
   double minTimeForZeroVelocityUpdate_;  /**<Time until zero velocity update get performed if there is no motion*/
@@ -224,11 +226,14 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   int alignMaxUniSample_;
   bool useCrossCameraMeasurements_; /**<Should features be matched across cameras.*/
   bool doStereoInitialization_; /**<Should a stereo match be used for feature initialization.*/
+  bool addGlobalBest_;
+  bool histogramEqualize_;
   double alignmentHuberNormThreshold_; /**<Intensity error threshold for Huber norm.*/
   double alignmentGaussianWeightingSigma_; /**<Width of Gaussian which is used for pixel error weighting.*/
   double alignmentGradientExponent_; /**<Exponent used for gradient based weighting of residuals.*/
   double discriminativeSamplingDistance_; /**<Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).*/
   double discriminativeSamplingGain_; /**<Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).*/
+
 
   // Temporary
   mutable PixelOutputCT pixelOutputCT_;
@@ -242,7 +247,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   mutable MultilevelPatch<mtState::nLevels_,mtState::patchSize_> mlpTemp2_;
   mutable FeatureCoordinates alignedCoordinates_;
   mutable FeatureCoordinates tempCoordinates_;
-  mutable FeatureCoordinatesVec candidates_;
+  mutable FeatureCoordinatesVec candidates_[mtState::nCam_];
+  //mutable std::vector<FeatureCoordinatesVec> candidates_;
   mutable cv::Point2f c_temp_;
   mutable Eigen::Matrix2d c_J_;
   mutable Eigen::Matrix2d A_red_;
@@ -280,8 +286,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     zeroDistancePenalty_ = nDetectionBuckets_*1.0;
     useDirectMethod_ = true;
     doFrameVisualisation_ = true;
+    showCandidates_ = false;
     visualizePatches_ = false;
     verbose_ = false;
+    healthCheck_ = false;
     trackingUpperBound_ = 0.9;
     trackingLowerBound_ = 0.1;
     minTrackedAndFreeFeatures_ = 0.5;
@@ -304,6 +312,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     alignMaxUniSample_ = 5;
     useCrossCameraMeasurements_ = true;
     doStereoInitialization_ = true;
+    addGlobalBest_ = false;
+    histogramEqualize_ = false;
     removalFactor_ = 1.1;
     alignmentGaussianWeightingSigma_ = 2.0;
     discriminativeSamplingDistance_ = 0.0;
@@ -338,10 +348,13 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     boolRegister_.registerScalar("MotionDetection.isEnabled",doVisualMotionDetection_);
     boolRegister_.registerScalar("useDirectMethod",useDirectMethod_);
     boolRegister_.registerScalar("doFrameVisualisation",doFrameVisualisation_);
+    boolRegister_.registerScalar("showCandidates",showCandidates_);
     boolRegister_.registerScalar("visualizePatches",visualizePatches_);
     boolRegister_.registerScalar("removeNegativeFeatureAfterUpdate",removeNegativeFeatureAfterUpdate_);
     boolRegister_.registerScalar("useCrossCameraMeasurements",useCrossCameraMeasurements_);
     boolRegister_.registerScalar("doStereoInitialization",doStereoInitialization_);
+    boolRegister_.registerScalar("addGlobalBest",addGlobalBest_);
+    boolRegister_.registerScalar("histogramEqualize",histogramEqualize_);
     boolRegister_.registerScalar("useIntensityOffsetForAlignment",alignment_.useIntensityOffset_);
     boolRegister_.registerScalar("useIntensitySqewForAlignment",alignment_.useIntensitySqew_);
     doubleRegister_.removeScalarByVar(updnoiP_(0,0));
@@ -984,8 +997,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     if(verbose_) std::cout << std::endl;
 
     // Get new features
-    // std::cout << "Have Valid Feature Count :" << filterState.fsm_.getValidCount() << " features in camera "<< std::endl;
-    
     if(filterState.fsm_.getValidCount() < startDetectionTh_*mtState::nMax_){
       // Compute the median depth parameters for each camera, using the state features.
       std::array<double, mtState::nCam_> medianDepthParameters;
@@ -994,18 +1005,55 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       } else {
         medianDepthParameters.fill(initDepth_);
       }
-      for(int camID = 0;camID<mtState::nCam_;camID++){
-        // Get Candidates
+
         if(verbose_) std::cout << "Adding keypoints" << std::endl;
+
+      // Get Candidates      
+      for(int camID = 0;camID<mtState::nCam_;camID++){
         const double t1 = (double) cv::getTickCount();
-        candidates_.clear();
+        candidates_[camID].clear();
         for(int l=endLevel_;l<=startLevel_;l++){
-          meas.aux().pyr_[camID].detectFastCorners(candidates_,l,fastDetectionThreshold_, mpMultiCamera_->cameras_[camID].valid_radius_);
+          meas.aux().pyr_[camID].detectFastCorners(candidates_[camID],l,fastDetectionThreshold_);
+
         }
+
         const double t2 = (double) cv::getTickCount();
-        if(verbose_) std::cout << "== Detected " << candidates_.size() << " on levels " << endLevel_ << "-" << startLevel_ << " (" << (t2-t1)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
-        // std::cout << "== Detected " << candidates_.size() << " on levels " << endLevel_ << "-" << startLevel_ << " (" << (t2-t1)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
-        std::unordered_set<unsigned int> newSet = filterState.fsm_.addBestCandidates(candidates_,meas.aux().pyr_[camID],camID,filterState.t_,
+        if(verbose_) std::cout << "== Detected " << candidates_[camID].size() << " candidates in Camera" << camID << " on levels " << endLevel_ << "-" << startLevel_ << " (" << (t2-t1)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
+
+        // visualization of detected candidates
+        if(doFrameVisualisation_ && showCandidates_){
+          for(int i=0;i<candidates_[camID].size();i++){
+            candidates_[camID][i].drawPoint(filterState.img_[camID], cv::Scalar(255,0,0));
+          }
+        }
+      }
+
+      if(addGlobalBest_){
+        const double t2 = (double) cv::getTickCount();
+        std::unordered_set<unsigned int> newSet = filterState.fsm_.addBestGlobalCandidates(candidates_,meas.aux().pyr_,filterState.t_,
+                                                                  endLevel_,startLevel_,(mtState::nMax_-filterState.fsm_.getValidCount()),nDetectionBuckets_, scoreDetectionExponent_,
+                                                                  penaltyDistance_, zeroDistancePenalty_,false,minAbsoluteSTScore_);
+        const double t3 = (double) cv::getTickCount();
+        if(verbose_) std::cout << "== Got " << filterState.fsm_.getValidCount() << " after adding " << newSet.size() << " features in" << " " << (t3-t2)/cv::getTickFrequency()*1000 << " ms" << std::endl;
+        for(auto it = newSet.begin();it != newSet.end();++it){
+          FeatureManager<mtState::nLevels_,mtState::patchSize_,mtState::nCam_>& f = filterState.fsm_.features_[*it];
+          f.mpStatistics_->resetStatistics(filterState.t_);
+          f.mpStatistics_->status_[f.mpCoordinates_->camID_] = TRACKED;
+          f.mpStatistics_->lastPatchUpdate_ = filterState.t_;
+          f.mpDistance_->p_ = medianDepthParameters[f.mpCoordinates_->camID_];
+          const float initRelDepthCovTemp_ = initCovFeature_(0,0);
+          initCovFeature_(0,0) = initRelDepthCovTemp_*pow(f.mpDistance_->getParameterDerivative()*f.mpDistance_->getDistance(),2);
+          filterState.resetFeatureCovariance(*it,initCovFeature_);
+          initCovFeature_(0,0) = initRelDepthCovTemp_;
+          if(doFrameVisualisation_){
+            f.mpCoordinates_->drawPoint(filterState.img_[f.mpCoordinates_->camID_], cv::Scalar(255,255,0));                                    //changed color from blue to aquamarin
+            f.mpCoordinates_->drawText(filterState.img_[f.mpCoordinates_->camID_],std::to_string(f.idx_),cv::Scalar(255,255,0));               //changed color from blue to aquamarin
+          }
+        }
+      } else {
+        for(int camID = 0;camID<mtState::nCam_;camID++){
+          const double t2 = (double) cv::getTickCount();
+          std::unordered_set<unsigned int> newSet = filterState.fsm_.addBestCandidates(candidates_[camID],meas.aux().pyr_[camID],camID,filterState.t_,
                                                                     endLevel_,startLevel_,(mtState::nMax_-filterState.fsm_.getValidCount())/(mtState::nCam_-camID),nDetectionBuckets_, scoreDetectionExponent_,
                                                                     penaltyDistance_, zeroDistancePenalty_,false,minAbsoluteSTScore_);
         const double t3 = (double) cv::getTickCount();
@@ -1022,8 +1070,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           filterState.resetFeatureCovariance(*it,initCovFeature_);
           initCovFeature_(0,0) = initRelDepthCovTemp_;
           if(doFrameVisualisation_){
-            f.mpCoordinates_->drawPoint(filterState.img_[camID], cv::Scalar(255,0,0));
-            f.mpCoordinates_->drawText(filterState.img_[camID],std::to_string(f.idx_),cv::Scalar(255,0,0));
+              f.mpCoordinates_->drawPoint(filterState.img_[camID], cv::Scalar(255,255,0));                                    //changed color from blue to aquamarin
+              f.mpCoordinates_->drawText(filterState.img_[camID],std::to_string(f.idx_),cv::Scalar(255,255,0));               //changed color from blue to aquamarin
           }
 
           if(mtState::nCam_>1 && doStereoInitialization_){
@@ -1059,6 +1107,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
               if(doFrameVisualisation_){
                 alignedCoordinates_.drawPoint(filterState.img_[otherCam], cv::Scalar(0,150,0));
                 alignedCoordinates_.drawText(filterState.img_[otherCam],std::to_string(f.idx_),cv::Scalar(0,150,0));
+                }
               }
             }
           }

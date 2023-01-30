@@ -33,6 +33,8 @@
 #include <mutex>
 #include <queue>
 
+#include <boost/bind.hpp>
+
 #include <cv_bridge/cv_bridge.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -47,7 +49,6 @@
 #include <std_srvs/Empty.h>
 #include <tf/transform_broadcaster.h>
 #include <visualization_msgs/Marker.h>
-#include <image_transport/image_transport.h>
 
 #include <rovio/SrvResetToPose.h>
 #include "rovio/RovioFilter.hpp"
@@ -127,6 +128,7 @@ class RovioNode{
   bool forceMarkersPublishing_;
   bool forcePatchPublishing_;
   bool gotFirstMessages_;
+
   std::mutex m_filter_;
 
   // Nodes, Subscriber, Publishers
@@ -151,13 +153,8 @@ class RovioNode{
   ros::Publisher pubPcl_;            /**<Publisher: Ros point cloud, visualizing the landmarks.*/
   ros::Publisher pubPatch_;            /**<Publisher: Patch data.*/
   ros::Publisher pubMarkers_;          /**<Publisher: Ros line marker, indicating the depth uncertainty of a landmark.*/
-  ros::Publisher pubFeatureIds;
-  ros::Publisher pubBadFeatureIds;
   ros::Publisher pubExtrinsics_[mtState::nCam_];
   ros::Publisher pubImuBias_;
-
-  image_transport::Publisher pubImg_;
-  image_transport::Publisher pubPatchImg_;
 
   // Ros Messages
   geometry_msgs::TransformStamped transformMsg_;
@@ -168,8 +165,6 @@ class RovioNode{
   sensor_msgs::PointCloud2 pclMsg_;
   sensor_msgs::PointCloud2 patchMsg_;
   visualization_msgs::Marker markerMsg_;
-  visualization_msgs::Marker featureIdsMsgs_;
-  visualization_msgs::Marker badFeatureIdsMsgs_;
   sensor_msgs::Imu imuBiasMsg_;
   int msgSeq_;
 
@@ -219,8 +214,9 @@ class RovioNode{
     gotFirstMessages_ = false;
 
     // Subscribe topics
-    	    subImu_ = nh_.subscribe("imu0", 1000, &RovioNode::imuCallback,this);	
-    subImg0_ = nh_.subscribe("cam0/image_raw", 1000, &RovioNode::imgCallback0,this);	
+    subImu_ = nh_.subscribe("imu0", 1000, &RovioNode::imuCallback,this);
+    // subImg0_ = nh_.subscribe("cam0/image_raw", 1000, std::bind(&RovioNode::imgCallback, std::placeholders::_1, 0),this);
+    subImg0_ = nh_.subscribe("cam0/image_raw", 1000, &RovioNode::imgCallback0,this);
     subImg1_ = nh_.subscribe("cam1/image_raw", 1000, &RovioNode::imgCallback1,this);
     subImg2_ = nh_.subscribe("cam2/image_raw", 1000, &RovioNode::imgCallback2,this);
     subImg3_ = nh_.subscribe("cam3/image_raw", 1000, &RovioNode::imgCallback3,this);
@@ -240,26 +236,18 @@ class RovioNode{
     pubPcl_ = nh_.advertise<sensor_msgs::PointCloud2>("rovio/pcl", 1);
     pubPatch_ = nh_.advertise<sensor_msgs::PointCloud2>("rovio/patch", 1);
     pubMarkers_ = nh_.advertise<visualization_msgs::Marker>("rovio/markers", 1 );
-    pubFeatureIds = nh_.advertise<visualization_msgs::Marker>("rovio/featureIds", 1 );
-    pubBadFeatureIds = nh_.advertise<visualization_msgs::Marker>("rovio/badFeatureIds", 1 );
 
     pub_T_J_W_transform = nh_.advertise<geometry_msgs::TransformStamped>("rovio/T_G_W", 1);
-    int camIDtest = 0;
-    // std::cout<<"nCams :", mtState::nCam_<<std::endl;
     for(int camID=0;camID<mtState::nCam_;camID++){
       pubExtrinsics_[camID] = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("rovio/extrinsics" + std::to_string(camID), 1 );
     }
     pubImuBias_ = nh_.advertise<sensor_msgs::Imu>("rovio/imu_biases", 1 );
 
-    image_transport::ImageTransport it(nh_);
-    pubImg_ = it.advertise("rovio/image", 1);
-    pubPatchImg_ = it.advertise("rovio/patchimage", 1);
-
     // Handle coordinate frame naming
     map_frame_ = "/map";
-    world_frame_ = "world";
-    camera_frame_ = "camera";
-    imu_frame_ = "imu";
+    world_frame_ = "/world";
+    camera_frame_ = "/camera";
+    imu_frame_ = "/imu";
     nh_private_.param("map_frame", map_frame_, map_frame_);
     nh_private_.param("world_frame", world_frame_, world_frame_);
     nh_private_.param("camera_frame", camera_frame_, camera_frame_);
@@ -314,7 +302,7 @@ class RovioNode{
     pclMsg_.is_dense = false;
 
     // PointCloud message.
-    patchMsg_.header.frame_id = imu_frame_;
+    patchMsg_.header.frame_id = "";
     patchMsg_.height = 1;               // Unordered point cloud.
     patchMsg_.width  = mtState::nMax_;  // Number of features/points.
     const int nFieldsPatch = 5;
@@ -353,32 +341,6 @@ class RovioNode{
     markerMsg_.color.r = 0.0;
     markerMsg_.color.g = 1.0;
     markerMsg_.color.b = 0.0;
-
-
-    // Marker message (to store and track feature ids)
-    featureIdsMsgs_.header.frame_id = imu_frame_;
-    featureIdsMsgs_.id = 1;
-    featureIdsMsgs_.type = 1;
-    featureIdsMsgs_.action = visualization_msgs::Marker::ADD;
-    featureIdsMsgs_.pose.position.x = 0;
-    featureIdsMsgs_.pose.position.y = 0;
-    featureIdsMsgs_.pose.position.z = 0;
-    featureIdsMsgs_.pose.orientation.x = 0.0;
-    featureIdsMsgs_.pose.orientation.y = 0.0;
-    featureIdsMsgs_.pose.orientation.z = 0.0;
-    featureIdsMsgs_.pose.orientation.w = 1.0;
-    featureIdsMsgs_.scale.x = 0.04; // Line width.
-    featureIdsMsgs_.color.a = 1.0;
-    featureIdsMsgs_.color.r = 0.0;
-    featureIdsMsgs_.color.g = 1.0;
-    featureIdsMsgs_.color.b = 0.0;
-
-    // Marker message (to store and track feature ids)
-    badFeatureIdsMsgs_.header.frame_id = imu_frame_;
-    badFeatureIdsMsgs_.id = 1;
-    badFeatureIdsMsgs_.type = 1;
-    badFeatureIdsMsgs_.action = visualization_msgs::Marker::ADD;
-    badFeatureIdsMsgs_.color.b = 0.0;
   }
 
   /** \brief Destructor
@@ -616,36 +578,13 @@ class RovioNode{
       }
       cv::LUT(cv_img, lut, cv_img);
     }
-    // // // // To dim the images 
-    // if(init_state_.isInitialized() && !cv_img.empty()){
-
-    //   //>>> Gamma correction
-    //   cv::Mat cv_img_hsv = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   cv::Mat img_cp = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   cv::Mat ones_ = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   double alpha = 0.5; /*< Simple contrast control */
-    //   int beta = 0;       /*< Simple brightness control */
-
-    //   std::cout<<cv_img.size()<<std::endl;
-  
-    //   cv_img.copyTo(img_cp);
-
-    //   for (int y = 0; y < cv_img_hsv.rows; y++) {
-    //       for (int x = 0; x < cv_img_hsv.cols; x++) {
-    //               cv_img_hsv.at<cv::Vec3b>(y, x)[0] = ones_.at<cv::Vec3b>(y, x)[0] ;
-      
-    //       }
-    //   }
-    // //   // cv_img = cv_img_hsv;
-    // }
-    // //   //<<<
 
     if(init_state_.isInitialized() && !cv_img.empty()){
       double msgTime = img->header.stamp.toSec();
       if(msgTime != imgUpdateMeas_.template get<mtImgMeas::_aux>().imgTime_){
         for(int i=0;i<mtState::nCam_;i++){
           if(imgUpdateMeas_.template get<mtImgMeas::_aux>().isValidPyr_[i]){
-            std::cout << "    \033[31mFailed Synchronization of Camera Frames, t = " << msgTime << "\033[0m" << std::endl;
+            std::cout << "    \033[31mFailed Synchronization of Camera Frames, t = " << msgTime << "    " << camID << "\033[0m" << std::endl;
           }
         }
         imgUpdateMeas_.template get<mtImgMeas::_aux>().reset(msgTime);
@@ -793,18 +732,7 @@ class RovioNode{
         }
         if(!mpFilter_->safe_.patchDrawing_.empty() && mpImgUpdate_->visualizePatches_){
           cv::imshow("Patches", mpFilter_->safe_.patchDrawing_);
-          cv::imshow("PatchesClean", mpFilter_->safe_.patchDrawingClean_);
           cv::waitKey(3);
-
-          sensor_msgs::ImagePtr PatchImgMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", mpFilter_->safe_.patchDrawingClean_).toImageMsg();
-          pubPatchImg_.publish(PatchImgMsg);
-        }
-
-        if(pubImg_.getNumSubscribers() > 0){
-          for(int i=0;i<mtState::nCam_;i++){
-            sensor_msgs::ImagePtr ImgMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", mpFilter_->safe_.img_[i]).toImageMsg();
-            pubImg_.publish(ImgMsg);
-          }
         }
 
         // Obtain the save filter state.
@@ -1008,58 +936,16 @@ class RovioNode{
           }
           pubImuBias_.publish(imuBiasMsg_);
         }
-        
+
         std::vector<float> featureDistanceCov;
-        int offset = 0;
-        
-        // Publish featureids and uncertainity
-        featureIdsMsgs_.header.seq = msgSeq_;
-        featureIdsMsgs_.header.stamp = ros::Time(mpFilter_->safe_.t_);
-        featureIdsMsgs_.points.clear();
 
-        badFeatureIdsMsgs_.header.seq = msgSeq_;
-        badFeatureIdsMsgs_.header.stamp = ros::Time(mpFilter_->safe_.t_);
-        badFeatureIdsMsgs_.points.clear();
-
-        for (unsigned int i=0;i<mtState::nMax_; i++) {
-            if(filterState.fsm_.isValid_[i]){
-
-              FeatureManager<mtState::nLevels_,mtState::patchSize_,mtState::nCam_>& f = filterState.fsm_.features_[i];
-              
-
-              geometry_msgs::Point validFeature;
-              validFeature.x = filterState.fsm_.features_[i].idx_;
-              validFeature.y = f.mpStatistics_->getJointLocalVisibility();
-              validFeature.z = f.mpStatistics_->getGlobalQuality();
-
-              featureIdsMsgs_.points.push_back(validFeature);
-            }
-            else
-            {
-              FeatureManager<mtState::nLevels_,mtState::patchSize_,mtState::nCam_>& f = filterState.fsm_.features_[i];
-
-              geometry_msgs::Point invalidFeature;
-              invalidFeature.x = filterState.fsm_.features_[i].idx_;
-              invalidFeature.y = f.mpStatistics_->getJointLocalVisibility();
-              invalidFeature.z = f.mpStatistics_->getGlobalQuality();
-
-              badFeatureIdsMsgs_.points.push_back(invalidFeature);
-            }
-        }
-
-        pubFeatureIds.publish(featureIdsMsgs_);
-        pubBadFeatureIds.publish(badFeatureIdsMsgs_);
-
-        // PointCloud message.        
+        // PointCloud message.
         if(pubPcl_.getNumSubscribers() > 0 || pubMarkers_.getNumSubscribers() > 0 || forcePclPublishing_ || forceMarkersPublishing_){
-
-          
           pclMsg_.header.seq = msgSeq_;
           pclMsg_.header.stamp = ros::Time(mpFilter_->safe_.t_);
           markerMsg_.header.seq = msgSeq_;
           markerMsg_.header.stamp = ros::Time(mpFilter_->safe_.t_);
           markerMsg_.points.clear();
-
           float badPoint = std::numeric_limits<float>::quiet_NaN();  // Invalid point.
           int offset = 0;
 
@@ -1149,9 +1035,7 @@ class RovioNode{
               point_far_msg.y = float(CrCPm[1]);
               point_far_msg.z = float(CrCPm[2]);
               markerMsg_.points.push_back(point_near_msg);
-              markerMsg_.points.push_back(point_far_msg); 
-
-              
+              markerMsg_.points.push_back(point_far_msg);
             }
             else {
               // If current feature is not valid copy NaN
@@ -1173,7 +1057,6 @@ class RovioNode{
             if(filterState.fsm_.isValid_[i]){
               memcpy(&patchMsg_.data[offset + patchMsg_.fields[0].offset], &filterState.fsm_.features_[i].idx_, sizeof(int));  // id
               // Add patch data
-
               for(int l=0;l<mtState::nLevels_;l++){
                 for(int y=0;y<mtState::patchSize_;y++){
                   for(int x=0;x<mtState::patchSize_;x++){
@@ -1181,34 +1064,6 @@ class RovioNode{
                     memcpy(&patchMsg_.data[offset + patchMsg_.fields[2].offset + (l*mtState::patchSize_*mtState::patchSize_ + y*mtState::patchSize_ + x)*4], &filterState.fsm_.features_[i].mpMultilevelPatch_->patches_[l].dx_[y*mtState::patchSize_ + x], sizeof(float)); // dx
                     memcpy(&patchMsg_.data[offset + patchMsg_.fields[3].offset + (l*mtState::patchSize_*mtState::patchSize_ + y*mtState::patchSize_ + x)*4], &filterState.fsm_.features_[i].mpMultilevelPatch_->patches_[l].dy_[y*mtState::patchSize_ + x], sizeof(float)); // dy
                     memcpy(&patchMsg_.data[offset + patchMsg_.fields[4].offset + (l*mtState::patchSize_*mtState::patchSize_ + y*mtState::patchSize_ + x)*4], &filterState.mlpErrorLog_[i].patches_[l].patch_[y*mtState::patchSize_ + x], sizeof(float)); // error
-                  }
-                }
-              }
-            }
-            else {
-              // If current feature is not valid copy NaN
-              int id = -1;
-              memcpy(&patchMsg_.data[offset + patchMsg_.fields[0].offset], &id, sizeof(int));  // id
-            }
-          }
-
-          pubPatch_.publish(patchMsg_);
-        }
-        if(pubPatch_.getNumSubscribers() > 0 || forcePatchPublishing_){
-          patchMsg_.header.seq = msgSeq_;
-          patchMsg_.header.stamp = ros::Time(mpFilter_->safe_.t_);
-          int offset = 0;
-          for (unsigned int i=0;i<mtState::nMax_; i++, offset += patchMsg_.point_step) {
-            if(filterState.fsm_.isValid_[i]){
-              memcpy(&patchMsg_.data[offset + patchMsg_.fields[0].offset], &filterState.fsm_.features_[i].idx_, sizeof(int));  // id
-              // Add patch data
-              for(int l=0;l<mtState::nLevels_;l++){
-                for(int y=0;y<mtState::patchSize_;y++){
-                  for(int x=0;x<mtState::patchSize_;x++){
-                    memcpy(&patchMsg_.data[offset + patchMsg_.fields[1].offset + (l*mtState::patchSize_*mtState::patchSize_ + y*mtState::patchSize_ + x)*4], &filterState.fsm_.features_[i].mpMultilevelPatch_->patches_[l].patch_[y*mtState::patchSize_ + x], sizeof(float)); // Patch
-                    memcpy(&patchMsg_.data[offset + patchMsg_.fields[2].offset + (l*mtState::patchSize_*mtState::patchSize_ + y*mtState::patchSize_ + x)*4], &filterState.fsm_.features_[i].mpMultilevelPatch_->patches_[l].dx_[y*mtState::patchSize_ + x], sizeof(float)); // dx
-                    memcpy(&patchMsg_.data[offset + patchMsg_.fields[3].offset + (l*mtState::patchSize_*mtState::patchSize_ + y*mtState::patchSize_ + x)*4], &filterState.fsm_.features_[i].mpMultilevelPatch_->patches_[l].dy_[y*mtState::patchSize_ + x], sizeof(float)); // dy
-                    memcpy(&patchMsg_.data[offset + patchMsg_.fields[4].offset + (l*mtState::patchSize_*mtState::patchSize_ + y*mtState::patchSize_ + x)*4], &filterState.mlpErrorLog_[i].patches_[l].patch_[y*mtState::patchSize_ + x], sizeof(float)); // error                    
                   }
                 }
               }
