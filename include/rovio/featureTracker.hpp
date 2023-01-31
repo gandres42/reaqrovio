@@ -50,7 +50,7 @@ class FeatureTrackerNode{
   static constexpr int nMax_ = 100;  /**<Maximum number of MultilevelPatchFeature%s in a MultilevelPatchSet.*/
   static constexpr int patchSize_ = 8;  /**<Edge length of the patches in pixels. Value must be a multiple of 2!*/
   static constexpr int nLevels_ = 4;  /**<Total number of image pyramid levels.*/
-  static constexpr int nCam_ = 1;  /**<Total number of image pyramid levels. Only 1 camera supported so far.*/
+  static constexpr int nCam_ = 2;  /**<Total number of image pyramid levels. Only 1 camera supported so far.*/
   cv::Mat draw_image_, img_, draw_patches_;
   unsigned int min_feature_count_;  /**<New MultilevelPatchFeature%s are added to the existing MultilevelPatchSet,
                                         if the number of valid MultilevelPatchFeature%s in the set is smaller

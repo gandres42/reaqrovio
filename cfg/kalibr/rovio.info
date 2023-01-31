@@ -30,17 +30,6 @@ MrMC_x  0.06173856415488615;
 MrMC_y  0.00976758859170145;
 MrMC_z  -0.050699163827628894;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
 }
-Camera2
-{
-	CalibrationFile ;											Camera-Calibration file for intrinsics
-qCM_x   -0.003079702626236617;
-qCM_y   0.9999897260236406;
-qCM_z   0.0006085774283310693;
-qCM_w   0.003270001897873879;
-MrMC_x  0.009250129629087845;
-MrMC_y  0.009608189706080876;
-MrMC_z  -0.03874359685908018;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
-}
 Init
 {
     

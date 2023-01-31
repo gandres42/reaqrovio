@@ -462,6 +462,11 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       transformFeatureOutputCT_.setOutputCameraID(activeCamID);
       transformFeatureOutputCT_.transformState(candidate,featureOutput_);
       transformFeatureOutputCT_.jacTransform(featureOutputJac_,candidate);
+      if (featureOutput_.c().get_nor().getVec()(2) < 0.0)
+      {
+        std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
+      }
+
       mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_);
 
       canditateGenerationH_  = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
@@ -566,6 +571,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     if(useDirectMethod_){
       if(alignment_.getLinearAlignEquationsReduced(meas_.aux().pyr_[activeCamID],*state.aux().mpCurrentFeature_->mpMultilevelPatch_,featureOutput_.c(),endLevel_,startLevel_,A_red_,b_red_)){
         transformFeatureOutputCT_.jacTransform(featureOutputJac_,state);
+        if (featureOutput_.c().get_nor().getVec()(2) < 0.0)
+        {
+          std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
+        }
         mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_);
         F = -A_red_*c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
       } else {
@@ -574,6 +583,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       }
     } else {
       transformFeatureOutputCT_.jacTransform(featureOutputJac_,state);
+      if (featureOutput_.c().get_nor().getVec()(2) < 0.0)
+      {
+        std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
+      }
       mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_);
       F = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
     }

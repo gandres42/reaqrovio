@@ -330,6 +330,7 @@ class FeatureSetManager{
           for (unsigned int bucketID = 1;bucketID < nDetectionBuckets;bucketID++) {
             for (auto it_cand = buckets[bucketID].begin();it_cand != buckets[bucketID].end();) {
               doDelete = false;
+              
               d2 = std::pow(featureCoordinates.get_c().x - candidates[*it_cand].get_c().x,2) + std::pow(featureCoordinates.get_c().y - candidates[*it_cand].get_c().y,2);  // Squared distance between the existing feature and the candidate feature.
               if(d2<t2){
                 newBucketID = std::max((int)(bucketID - (t2-d2)/t2*zeroDistancePenalty),0);
