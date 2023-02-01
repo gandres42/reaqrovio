@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project(rovio)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -march=native")
-set(ROVIO_NMAXFEATURE 25 CACHE STRING "Number of features for ROVIO")
+set(ROVIO_NMAXFEATURE 20 CACHE STRING "Number of features for ROVIO")
 set(ROVIO_NCAM 5 CACHE STRING "Number of enabled cameras")
 set(ROVIO_NLEVELS 4 CACHE STRING "Number of image leavels for the features")
 set(ROVIO_PATCHSIZE 6 CACHE STRING "Size of patch (edge length in pixel)")
