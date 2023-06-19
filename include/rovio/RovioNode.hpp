@@ -158,6 +158,8 @@ class RovioNode{
 
   image_transport::Publisher pubImg_;
   image_transport::Publisher pubPatchImg_;
+  image_transport::Publisher pubFrames_[mtState::nCam_];
+
 
   // Ros Messages
   geometry_msgs::TransformStamped transformMsg_;
@@ -254,6 +256,10 @@ class RovioNode{
     image_transport::ImageTransport it(nh_);
     pubImg_ = it.advertise("rovio/image", 1);
     pubPatchImg_ = it.advertise("rovio/patchimage", 1);
+
+    for (int camID = 0; camID < mtState::nCam_; camID++) {
+      pubFrames_[camID] = it.advertise("rovio/frame" + std::to_string(camID), 1);
+    }
 
     // Handle coordinate frame naming
     map_frame_ = "/map";
@@ -790,6 +796,17 @@ class RovioNode{
             cv::imshow("Tracker" + std::to_string(i), mpFilter_->safe_.img_[i]);
             cv::waitKey(3);
           }
+          //Custom message for publishing the tracked features
+          if (!mpFilter_->safe_.img_[i].empty() && pubFrames_[0].getNumSubscribers() > 0 && mpImgUpdate_->publishFrames_){
+          //   // // patchesMsg_ = cv_bridge::CvImage(mpFilter_->safe_.patchDrawing_).toImageMsg();
+            std_msgs::Header header;
+            header.stamp = ros::Time(mpFilter_->safe_.t_);
+            header.frame_id = camera_frame_ + std::to_string(i);
+            sensor_msgs::ImagePtr frameMsg_ = cv_bridge::CvImage(std_msgs::Header(), "bgr8", mpFilter_->safe_.img_[i]).toImageMsg();
+
+            pubFrames_[i].publish(frameMsg_);
+          }
+
         }
         if(!mpFilter_->safe_.patchDrawing_.empty() && mpImgUpdate_->visualizePatches_){
           cv::imshow("Patches", mpFilter_->safe_.patchDrawing_);

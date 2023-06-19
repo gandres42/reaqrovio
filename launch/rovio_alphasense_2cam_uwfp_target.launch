@@ -3,6 +3,9 @@
 
 <launch>
   <param name="/use_sim_time" value="true" />
+  
+  <!-- <node pkg="tf" type="static_transform_publisher" name="base_link_to_camera_tf" args="0 0 0.2 0 0.0 0 base_link camera 10" /> -->
+  <node pkg="tf" type="static_transform_publisher" name="mocap_to_world_tf" args="0 0 0 0 0 0 base_link camera 10" />
 
   <node pkg="rovio" type="rovio_node" name="rovio" output="screen" clear_params="true" required="true">
 

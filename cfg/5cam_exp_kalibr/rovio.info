@@ -110,7 +110,7 @@ ImgUpdate
 	updateVecNormTermination 1e-4;
 	maxNumIteration 20;
     doPatchWarping true;										Should the patches be warped
-    doFrameVisualisation true;									Should the frames be visualized
+    doFrameVisualisation false;									Should the frames be visualized
     showCandidates false;                                       Should the possible feature candidates be displayed
     visualizePatches false;										Should the patches be visualized
     useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
