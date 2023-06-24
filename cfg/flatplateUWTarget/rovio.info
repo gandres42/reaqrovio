@@ -10,24 +10,35 @@ Common
 Camera0
 {
 	CalibrationFile ;												Camera-Calibration file for intrinsics
-qCM_x   0.5033842117276492;
-qCM_y   0.500212750648216;
-qCM_z   0.4958137120155698;
-qCM_w   -0.5005599888620951;
-MrMC_x  0.03871960101390744;
-MrMC_y  0.045162645232540335;
-MrMC_z  -0.02227396775828157;		Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+qCM_x   0.5027695156557828;
+qCM_y   0.5002145141495467;
+qCM_z   0.49690290362200085;
+qCM_w   0.5000957491655045;
+MrMC_x  0.04839478648122993;
+MrMC_y  0.04799781122813299;
+MrMC_z  -0.009770663739786307;		Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
 }
 Camera1
 {
 	CalibrationFile ;											Camera-Calibration file for intrinsics
-qCM_x   0.5036065451370678;
-qCM_y   0.4997836693498206;
-qCM_z   0.4965245490462591;
-qCM_w   -0.5000601001287195;
-MrMC_x  0.037837951419751895;
-MrMC_y  -0.06456549231857027;
-MrMC_z  -0.022187228112651943;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+qCM_x   0.5012988172354748;
+qCM_y   0.5016255574437579;
+qCM_z   0.49890775228581163;
+qCM_w   -0.4981589612429676;
+MrMC_x  0.048237501240676856;
+MrMC_y  -0.061764582782547824;
+MrMC_z  -0.009825100578084466;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+}
+Camera2
+{
+	CalibrationFile ;											Camera-Calibration file for intrinsics
+qCM_x   0.7082745894102183;
+qCM_y   0.0037405128505741125;
+qCM_z   -0.0008710112540469162;
+qCM_w   -0.7059265938458451;
+MrMC_x  -0.0060396362982221615;
+MrMC_y  -0.07378394553435708;
+MrMC_z  -0.010280472771942207;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
 }
 Init
 {
