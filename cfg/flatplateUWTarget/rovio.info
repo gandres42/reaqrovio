@@ -5,7 +5,7 @@ Common
 	doVECalibration false;		Should the camera-IMU extrinsics be calibrated online
 	depthType 1;				Type of depth parametrization (0: normal, 1: inverse depth, 2: log, 3: hyperbolic)
 	verbose false;				Is the verbose active
-    healthCheck true;
+    healthCheck false;
 }
 Camera0
 {
@@ -13,7 +13,7 @@ Camera0
 qCM_x   0.5027695156557828;
 qCM_y   0.5002145141495467;
 qCM_z   0.49690290362200085;
-qCM_w   0.5000957491655045;
+qCM_w   -0.5000957491655045;
 MrMC_x  0.04839478648122993;
 MrMC_y  0.04799781122813299;
 MrMC_z  -0.009770663739786307;		Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
@@ -30,6 +30,17 @@ MrMC_y  -0.061764582782547824;
 MrMC_z  -0.009825100578084466;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
 }
 Camera2
+{
+	CalibrationFile ;											Camera-Calibration file for intrinsics
+qCM_x   0.0017347323853797783;
+qCM_y   0.7050453472080115;
+qCM_z   0.7091576749282017;
+qCM_w   -0.0018550402455404524;
+MrMC_x  -0.007377597577988395;
+MrMC_y  0.05806803516532685;
+MrMC_z  -0.00924757111835639;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+}
+Camera3
 {
 	CalibrationFile ;											Camera-Calibration file for intrinsics
 qCM_x   0.7082745894102183;
@@ -183,9 +194,9 @@ Prediction
         gyb_1 2.06e-10;							Y-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         gyb_2 2.06e-10;							Z-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         vep 1e-8;								Covariance parameter of linear extrinsics prediction [m^2/s]
-        att_0 1.09e-7;							X-Covariance parameter of attitude prediction [rad^2/s]
-        att_1 1.09e-7;							Y-Covariance parameter of attitude prediction [rad^2/s]
-        att_2 1.09e-7;							Z-Covariance parameter of attitude prediction [rad^2/s]
+        att_0 1.09e-6;							X-Covariance parameter of attitude prediction [rad^2/s]
+        att_1 1.09e-6;							Y-Covariance parameter of attitude prediction [rad^2/s]
+        att_2 1.09e-6;							Z-Covariance parameter of attitude prediction [rad^2/s]
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
@@ -227,7 +238,7 @@ PoseUpdate
 	enableAttitude true;						Should the rotation part be used during the update (e.g. set to fals eif feeding GPS-measurement)
 	noFeedbackToRovio true;						By default the pose update is only used for aligning coordinate frame. Set to false if ROVIO should benefit frome the posed measurements.
 	doInertialAlignmentAtStart true;			Should the transformation between I and W be explicitly computed and set with the first pose measurement.
-	timeOffset 0.00;								Time offset added to the pose measurement timestamps
+	timeOffset 0.02;								Time offset added to the pose measurement timestamps
     useOdometryCov false;                    Should the UpdateNoise position covariance be scaled using the covariance in the Odometry message
     qVM_x 0;									X-entry of quaterion representing IMU to reference body coordinate frame of pose measurement (Hamilton)
     qVM_y 0;									Y-entry of quaterion representing IMU to reference body coordinate frame of pose measurement (Hamilton)
