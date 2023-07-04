@@ -199,6 +199,16 @@ class RovioNode{
   std::string camera_frame_;
   std::string imu_frame_;
 
+  // CUSTOMIZATION
+  bool resize_input_image_ = false;
+  double resize_factor_ = 1.0; 
+  bool histogram_equalize_8bit_images_ = false;
+  cv::Ptr<cv::CLAHE> clahe;
+  double clahe_clip_limit_ = 7.0;  //number of pixels used to clip the CDF for histogram equalization
+  double clahe_grid_size_ = 8.0;   //clahe_grid_size_ x clahe_grid_size_ pixel neighborhood used
+  const float max_8bit_image_val = 255.0;
+
+
   /** \brief Constructor
    */
   RovioNode(ros::NodeHandle& nh, ros::NodeHandle& nh_private, std::shared_ptr<mtFilter> mpFilter)
@@ -270,6 +280,25 @@ class RovioNode{
     nh_private_.param("world_frame", world_frame_, world_frame_);
     nh_private_.param("camera_frame", camera_frame_, camera_frame_);
     nh_private_.param("imu_frame", imu_frame_, imu_frame_);
+
+      //CLAHE
+    nh_private_.param("histogram_equalize_8bit_images", histogram_equalize_8bit_images_, true);
+    if (histogram_equalize_8bit_images_)
+      ROS_WARN_ONCE("ROVIO - Input Grayscale Images are Histrogram Equalized");
+    if (histogram_equalize_8bit_images_) {
+      nh_private_.param("clahe_clip_limit", clahe_clip_limit_, 7.0);
+      nh_private_.param("clahe_grid_size", clahe_grid_size_, 8.0);
+      clahe = cv::createCLAHE();
+      clahe->setClipLimit(clahe_clip_limit_);
+      clahe->setTilesGridSize(cv::Size(clahe_grid_size_, clahe_grid_size_));
+    }
+    nh_private_.param("resize_input_image", resize_input_image_, false);
+    nh_private_.param("resize_factor", resize_factor_, 0.5);
+    //Image resize
+    if (resize_factor_ > 1.0)
+      resize_factor_ = 1.0;
+    if (resize_input_image_)
+      ROS_WARN_ONCE("ROVIO - Input Images Resized to %d pct of Original Size", static_cast<int>(resize_factor_ * 100));
 
     // Initialize messages
     transformMsg_.header.frame_id = world_frame_;
@@ -594,34 +623,49 @@ class RovioNode{
     cv::Mat cv_img;
     cv_ptr->image.copyTo(cv_img);
 
-    // Histogram equalization
-    if(mpImgUpdate_->histogramEqualize_){
-      constexpr size_t hist_bins = 256;
-      cv::Mat hist;
-      std::vector<cv::Mat> img_vec = {cv_img};
-      cv::calcHist(img_vec, {0}, cv::Mat(), hist, {hist_bins},
-                   {0, hist_bins-1}, false);
-       cv::Mat lut(1, hist_bins, CV_8UC1);
-       double sum = 0.0;
-      //prevents an image full of noise if in total darkness
-      float max_per_bin = cv_img.cols * cv_img.rows * 0.02;
-      float min_per_bin = cv_img.cols * cv_img.rows * 0.002;
-      float total_pixels = 0;
-      for(size_t i = 0; i < hist_bins; ++i){
-        float& bin = hist.at<float>(i);
-        if(bin > max_per_bin){
-          bin = max_per_bin;
-        } else if(bin < min_per_bin){
-          bin = min_per_bin;
-        }
-        total_pixels += bin;
-      }
-      for(size_t i = 0; i < hist_bins; ++i){
-        sum += hist.at<float>(i) / total_pixels;
-        lut.at<uchar>(i) = (hist_bins-1)*sum;
-      }
-      cv::LUT(cv_img, lut, cv_img);
+    if (mpImgUpdate_->histogramEqualize_) {
+      //Check if input image is actually 8-bit
+      double imgMin, imgMax;
+      cv::minMaxLoc(cv_img, &imgMin, &imgMax);
+      if (imgMax <= max_8bit_image_val) {
+        cv::Mat inImg, outImg;
+        cv_img.convertTo(inImg, CV_8UC1);
+        clahe->apply(inImg, outImg);
+        outImg.convertTo(cv_img, CV_8UC1); 
+      } else
+        ROS_WARN_THROTTLE(5, "Histogram Equaliztion for 8-bit intensity images is turned on but input Image is not 8-bit");
     }
+
+    // // Histogram equalization
+    // if(mpImgUpdate_->histogramEqualize_){
+    //   constexpr size_t hist_bins = 256;
+    //   cv::Mat hist;
+    //   std::vector<cv::Mat> img_vec = {cv_img};
+    //   cv::calcHist(img_vec, {0}, cv::Mat(), hist, {hist_bins},
+    //                {0, hist_bins-1}, false);
+    //    cv::Mat lut(1, hist_bins, CV_8UC1);
+    //    double sum = 0.0;
+    //   //prevents an image full of noise if in total darkness
+    //   float max_per_bin = cv_img.cols * cv_img.rows * 0.02;
+    //   float min_per_bin = cv_img.cols * cv_img.rows * 0.002;
+    //   float total_pixels = 0;
+    //   for(size_t i = 0; i < hist_bins; ++i){
+    //     float& bin = hist.at<float>(i);
+    //     if(bin > max_per_bin){
+    //       bin = max_per_bin;
+    //     } else if(bin < min_per_bin){
+    //       bin = min_per_bin;
+    //     }
+    //     total_pixels += bin;
+    //   }
+    //   for(size_t i = 0; i < hist_bins; ++i){
+    //     sum += hist.at<float>(i) / total_pixels;
+    //     lut.at<uchar>(i) = (hist_bins-1)*sum;
+    //   }
+    //   cv::LUT(cv_img, lut, cv_img);
+    // }
+
+    
     // // // // To dim the images 
     // if(init_state_.isInitialized() && !cv_img.empty()){
 
