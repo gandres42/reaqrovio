@@ -204,7 +204,7 @@ class RovioNode{
   double resize_factor_ = 1.0; 
   bool histogram_equalize_8bit_images_ = false;
   cv::Ptr<cv::CLAHE> clahe;
-  double clahe_clip_limit_ = 7.0;  //number of pixels used to clip the CDF for histogram equalization
+  double clahe_clip_limit_ = 2.0;  //number of pixels used to clip the CDF for histogram equalization
   double clahe_grid_size_ = 8.0;   //clahe_grid_size_ x clahe_grid_size_ pixel neighborhood used
   const float max_8bit_image_val = 255.0;
 
