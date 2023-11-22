@@ -100,8 +100,8 @@ ImgUpdate
     doPatchWarping true;										Should the patches be warped
     doFrameVisualisation false;									Should the frames be visualized
     publishFrames true;
-    showCandidates false;                                       Should the possible feature candidates be displayed
-    visualizePatches false;										Should the patches be visualized
+    showCandidates true;                                       Should the possible feature candidates be displayed
+    visualizePatches true;										Should the patches be visualized
     useDirectMethod false;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
     startLevel 3;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
@@ -129,7 +129,7 @@ ImgUpdate
     removalFactor 1.1;											Factor for enforcing feature removal if not enough free
     minRelativeSTScore 0.75;									Minimum relative ST-score for extracting new feature patch
     minAbsoluteSTScore 5.0;										Minimum absolute ST-score for extracting new feature patch
-    minTimeBetweenPatchUpdate 1.0;								Minimum time between new multilevel patch extrection [s]
+    minTimeBetweenPatchUpdate 1000.0;								Minimum time between new multilevel patch extrection [s]
     fastDetectionThreshold 2;									Fast corner detector treshold while adding new feature
     alignConvergencePixelRange 10;								Assumed convergence range for image alignment (gets scaled with the level) [pixels]
     alignCoverageRatio 2;										How many sigma of the uncertainty should be covered in the adaptive alignement
@@ -148,7 +148,7 @@ ImgUpdate
     discriminativeSamplingDistance 0.02;						Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).
     discriminativeSamplingGain 1.1;								Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).
     maxAllowedFeatureDistance 8.0;                             Max allowed estimated feature distance after performing update, remove features with very far away estimated depth and clustered features during backward motion.
-    minTimeBeforeFeaDistCheck 1.0;                              Min time allowed in secd before maxAllowedFeatureDistance check is applied. Typically 1.0 second for camera at 20 Hz i.e. 20 updates have been applied
+    minTimeBeforeFeaDistCheck 5.0;                              Min time allowed in secd before maxAllowedFeatureDistance check is applied. Typically 1.0 second for camera at 20 Hz i.e. 20 updates have been applied
     useDepthFromLiDAR false;                                     Enable or Disable usage of LiDAR direct depth for features
     lidarDepthCalcMode_ 1;                                      Use Patch(0) or Line(1) for Depth Calculation
     depthSearchWindowWidth 15; 23;                              Horizontal size of direct depth search window
@@ -174,8 +174,8 @@ ImgUpdate
         isEnabled 0;											Should zero velocity update be applied, only woroks if MotionDetectin.isEnabled is true
     }
 
-    addGlobalBest true;                                         Should the best features of all cameras be added (true) or the best of each camera (false)
-    histogramEqualize true;
+    addGlobalBest false;                                         Should the best features of all cameras be added (true) or the best of each camera (false)
+    histogramEqualize false;
 }
 Prediction
 {
@@ -259,9 +259,9 @@ VelocityUpdate
 {
     UpdateNoise
     {
-        vel_0 0.0001
-        vel_1 0.0001
-        vel_2 0.0001
+        vel_0 1.0
+        vel_1 1.0
+        vel_2 1.0
     }
     MahalanobisTh0 7.689997599999999
     qAM_x 0

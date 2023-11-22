@@ -73,10 +73,13 @@ class VelocityUpdateMeas: public LWF::State<LWF::VectorElement<3>,VelocityUpdate
   using Base::E_;
   static constexpr unsigned int _vel = 0;
   static constexpr unsigned int _aux = _vel+1;
+  Eigen::Matrix<double,3,3> measuredVelCov_; // Will be used to scale the update covariance according to the measurement
+
   VelocityUpdateMeas(){
     static_assert(_aux+1==E_,"Error with indices");
     this->template getName<_vel>() = "vel";
     this->template getName<_aux>() = "aux";
+    measuredVelCov_.setIdentity();
   };
   virtual ~VelocityUpdateMeas(){};
   inline V3D& vel(){
@@ -84,6 +87,12 @@ class VelocityUpdateMeas: public LWF::State<LWF::VectorElement<3>,VelocityUpdate
   }
   inline const V3D& vel() const{
     return this->template get<_vel>();
+  }
+  inline Eigen::Matrix<double,3,3>& measuredVelCov(){
+    return measuredVelCov_;
+  }
+  inline const Eigen::Matrix<double,3,3>& measuredVelCov() const{
+    return measuredVelCov_;
   }
 };
 
@@ -128,6 +137,7 @@ class VelocityUpdate: public LWF::Update<VelocityInnovation,FILTERSTATE,Velocity
   using Base::doubleRegister_;
   using Base::intRegister_;
   using Base::meas_;
+  using Base::updnoiP_;
   typedef typename Base::mtState mtState;
   typedef typename Base::mtFilterState mtFilterState;
   typedef typename Base::mtInnovation mtInnovation;
@@ -190,6 +200,26 @@ class VelocityUpdate: public LWF::Update<VelocityInnovation,FILTERSTATE,Velocity
     G.setZero();
     G.template block<3,3>(mtInnovation::template getId<mtInnovation::_vel>(),mtNoise::template getId<mtNoise::_vel>()) = Eigen::Matrix3d::Identity();
   }
+
+  //Changes by Mohit
+  void preProcess(mtFilterState& filterstate, const mtMeas& meas, bool& isFinished){
+    mtState& state = filterstate.state_;
+    isFinished = false;
+    // When enabled, scale the configured position covariance by the values in the measurement
+    
+    // updnoiP_ = defaultUpdnoiP_;
+    updnoiP_ = meas.measuredVelCov();
+    
+  }
+  // void postProcess(mtFilterState& filterstate, const mtMeas& meas, const mtOutlierDetection& outlierDetection, bool& isFinished){
+  //   mtState& state = filterstate.state_;
+  //   isFinished = true;
+  //   // WrWC = qWI*(IrIV - qWI^T*qWM*MrMV -IrIW) +qWM*MrMC
+  //   state.aux().poseMeasLin_ = get_qWI(state).rotate(V3D(meas.pos()-(get_qWI(state).inverted()*state.qWM()).rotate(get_MrMV(state))-get_IrIW(state)))+state.template get<mtState::_att>().rotate(state.MrMC(0));
+  //   // qCW = qCM*qVM^T*qVI*qWI^T;
+  //   state.aux().poseMeasRot_ = state.qCM(0)*get_qVM(state).inverted()*meas.att()*get_qWI(state).inverted();
+  // }
+
 };
 
 }
