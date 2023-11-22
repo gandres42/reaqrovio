@@ -175,7 +175,7 @@ ImgUpdate
     }
 
     addGlobalBest true;                                         Should the best features of all cameras be added (true) or the best of each camera (false)
-    histogramEqualize true;
+    histogramEqualize false;
 }
 Prediction
 {

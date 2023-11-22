@@ -85,7 +85,12 @@ class RovioNode{
   mtPoseUpdate* mpPoseUpdate_;
   typedef typename std::tuple_element<2,typename mtFilter::mtUpdates>::type mtVelocityUpdate;
   typedef typename mtVelocityUpdate::mtMeas mtVelocityMeas;
+  
+  //Changes by Mohit
+  typedef typename mtVelocityUpdate::mtNoise mtVelocityNoise;
+
   mtVelocityMeas velocityUpdateMeas_;
+  mtVelocityNoise velocityUpdateNoise_;
 
   RovioHealthMonitor healthMonitor_;
 
@@ -251,7 +256,7 @@ class RovioNode{
     subImg4_ = nh_.subscribe("cam4/image_raw", 1000, &RovioNode::imgCallback4,this);
     subGroundtruth_ = nh_.subscribe("pose", 1000, &RovioNode::groundtruthCallback,this);
     subGroundtruthOdometry_ = nh_.subscribe("odometry", 1000, &RovioNode::groundtruthOdometryCallback, this);
-    subVelocity_ = nh_.subscribe("abss/twist", 1000, &RovioNode::velocityCallback,this);
+    subVelocity_ = nh_.subscribe("abss_cov/twist", 1000, &RovioNode::velocityCallback,this);
 
     // Initialize ROS service servers.
     srvResetFilter_ = nh_.advertiseService("rovio/reset", &RovioNode::resetServiceCallback, this);
@@ -774,11 +779,18 @@ class RovioNode{
    *
    *  @param transform - Groundtruth message.
    */
-  void velocityCallback(const geometry_msgs::TwistStamped::ConstPtr& velocity){
+  void velocityCallback(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& velocity){
     std::lock_guard<std::mutex> lock(m_filter_);
     if(init_state_.isInitialized()){
-      Eigen::Vector3d AvM(velocity->twist.linear.x,velocity->twist.linear.y,velocity->twist.linear.z);
+      Eigen::Vector3d AvM(velocity->twist.twist.linear.x,velocity->twist.twist.linear.y,velocity->twist.twist.linear.z);
       velocityUpdateMeas_.vel() = AvM;
+
+      const Eigen::Matrix<double,6,6> measuredVelCov = Eigen::Map<const Eigen::Matrix<double,6,6,Eigen::RowMajor>>(velocity->twist.covariance.data());
+      velocityUpdateMeas_.measuredVelCov() = measuredVelCov.block(0,0, 3,3);
+      Eigen::Vector3d AvC(measuredVelCov(0,0),measuredVelCov(1,1),measuredVelCov(2,2));
+
+      velocityUpdateNoise_.vel() = AvC;
+
       mpFilter_->template addUpdateMeas<2>(velocityUpdateMeas_,velocity->header.stamp.toSec());
       updateAndPublish();
     }
