@@ -61,9 +61,9 @@ Init
         vel_0 0;			X-entry of initial velocity (robocentric, IMU) [m/s]
         vel_1 0;			Y-entry of initial velocity (robocentric, IMU) [m/s]
         vel_2 0;			Z-entry of initial velocity (robocentric, IMU) [m/s]
-        acb_0 0;			X-entry of accelerometer bias [m/s^2]
-        acb_1 0;			Y-entry of accelerometer bias [m/s^2]
-        acb_2 0;			Z-entry of accelerometer bias [m/s^2]
+        acb_0 -0.1;			X-entry of accelerometer bias [m/s^2]
+        acb_1 0.0;			Y-entry of accelerometer bias [m/s^2]
+        acb_2 0.1;			Z-entry of accelerometer bias [m/s^2]
         gyb_0 0;			X-entry of gyroscope bias [rad/s]
         gyb_1 0;			Y-entry of gyroscope bias [rad/s]
         gyb_2 0;			Z-entry of gyroscope bias [rad/s]
@@ -102,7 +102,7 @@ ImgUpdate
     publishFrames true;
     showCandidates true;                                       Should the possible feature candidates be displayed
     visualizePatches true;										Should the patches be visualized
-    useDirectMethod false;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
+    useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
     startLevel 3;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
     nDetectionBuckets 100;										Number of discretization buckets used during the candidates selection
@@ -116,7 +116,7 @@ ImgUpdate
     initCovFeature_1 1e-5;										Covariance for the initial bearing vector, x-component [rad^2]
     initCovFeature_2 1e-5;										Covariance for the initial bearing vector, y-component [rad^2]
     initDepth 1.0;												Initial value for the initial distance parameter
-    startDetectionTh 0.8;										Threshold for detecting new features (min: 0, max: 1)
+    startDetectionTh 0.1;										Threshold for detecting new features (min: 0, max: 1)
     scoreDetectionExponent 0.25;								Exponent used for weighting the distance between candidates
     penaltyDistance 100;										Maximal distance which gets penalized during bucketing [pix]
     zeroDistancePenalty 100;									Penalty for zero distance (max: nDetectionBuckets)
@@ -129,11 +129,11 @@ ImgUpdate
     removalFactor 1.1;											Factor for enforcing feature removal if not enough free
     minRelativeSTScore 0.75;									Minimum relative ST-score for extracting new feature patch
     minAbsoluteSTScore 5.0;										Minimum absolute ST-score for extracting new feature patch
-    minTimeBetweenPatchUpdate 1000.0;								Minimum time between new multilevel patch extrection [s]
-    fastDetectionThreshold 2;									Fast corner detector treshold while adding new feature
+    minTimeBetweenPatchUpdate 1.0;								Minimum time between new multilevel patch extrection [s]
+    fastDetectionThreshold 4;									Fast corner detector treshold while adding new feature
     alignConvergencePixelRange 10;								Assumed convergence range for image alignment (gets scaled with the level) [pixels]
     alignCoverageRatio 2;										How many sigma of the uncertainty should be covered in the adaptive alignement
-    alignMaxUniSample 1;										Maximal number of alignment seeds on one side -> total number of sample = 2n+1. Carefull can get very costly if diverging!
+    alignMaxUniSample 0;										Maximal number of alignment seeds on one side -> total number of sample = 2n+1. Carefull can get very costly if diverging!
     patchRejectionTh 50.0;										If the average itensity error is larger than this the feauture is rejected [intensity], if smaller 0 the no check is performed
     alignmentHuberNormThreshold 10;								Intensity error threshold for Huber norm (enabled if > 0)
     alignmentGaussianWeightingSigma -1;							Width of Gaussian which is used for pixel error weighting (enabled if > 0)
@@ -147,8 +147,8 @@ ImgUpdate
     noiseGainForOffCamera 10.0;									Factor added on update noise if not main camera
     discriminativeSamplingDistance 0.02;						Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).
     discriminativeSamplingGain 1.1;								Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).
-    maxAllowedFeatureDistance 8.0;                             Max allowed estimated feature distance after performing update, remove features with very far away estimated depth and clustered features during backward motion.
-    minTimeBeforeFeaDistCheck 5.0;                              Min time allowed in secd before maxAllowedFeatureDistance check is applied. Typically 1.0 second for camera at 20 Hz i.e. 20 updates have been applied
+    maxAllowedFeatureDistance 10.0;                             Max allowed estimated feature distance after performing update, remove features with very far away estimated depth and clustered features during backward motion.
+    minTimeBeforeFeaDistCheck 1.0;                              Min time allowed in secd before maxAllowedFeatureDistance check is applied. Typically 1.0 second for camera at 20 Hz i.e. 20 updates have been applied
     useDepthFromLiDAR false;                                     Enable or Disable usage of LiDAR direct depth for features
     lidarDepthCalcMode_ 1;                                      Use Patch(0) or Line(1) for Depth Calculation
     depthSearchWindowWidth 15; 23;                              Horizontal size of direct depth search window
@@ -175,7 +175,7 @@ ImgUpdate
     }
 
     addGlobalBest false;                                         Should the best features of all cameras be added (true) or the best of each camera (false)
-    histogramEqualize false;
+    histogramEqualize true;
 }
 Prediction
 {
@@ -187,9 +187,9 @@ Prediction
         vel_0 1e-7;								X-covariance parameter of velocity prediction [m^2/s^3]
         vel_1 1e-7;								Y-covariance parameter of velocity prediction [m^2/s^3]
         vel_2 1e-7;								Z-covariance parameter of velocity prediction [m^2/s^3]
-        acb_0 1.84e-6;								X-covariance parameter of accelerometer bias prediction [m^2/s^5]
-        acb_1 1.84e-6;								Y-covariance parameter of accelerometer bias prediction [m^2/s^5]
-        acb_2 1.84e-6;								Z-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_0 1.84e-7;								X-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_1 1.84e-7;								Y-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_2 1.84e-7;								Z-covariance parameter of accelerometer bias prediction [m^2/s^5]
         gyb_0 2.06e-10;							X-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         gyb_1 2.06e-10;							Y-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         gyb_2 2.06e-10;							Z-covariance parameter of gyroscope bias prediction [rad^2/s^3]
