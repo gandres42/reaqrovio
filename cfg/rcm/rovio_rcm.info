@@ -102,7 +102,7 @@ ImgUpdate
     publishFrames true;
     showCandidates true;                                       Should the possible feature candidates be displayed
     visualizePatches true;										Should the patches be visualized
-    useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
+    useDirectMethod false;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
     startLevel 3;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
     nDetectionBuckets 100;										Number of discretization buckets used during the candidates selection
