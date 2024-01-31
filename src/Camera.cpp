@@ -430,7 +430,14 @@ namespace rovio{
 
   bool Camera::pixelToBearing(const cv::Point2f& c,LWF::NormalVectorElement& n) const{
     Eigen::Vector3d vec;
-    bool success = pixelToBearingAnalytical(c,vec);
+    bool success;
+    if (type_==REFRAC){
+      success = pixelToBearingAnalytical(c,vec);
+    }
+    else{
+      success = pixelToBearing(c,vec);
+    }
+
     n.setFromVector(vec);
     return success;
   }
