@@ -234,6 +234,8 @@ class Camera{
    *   @return True, if process successful.
    */
   bool pixelToBearing(const cv::Point2f& c,Eigen::Vector3d& vec) const;
+  
+  bool pixelToBearingAnalytical(const cv::Point2f& c,Eigen::Vector3d& vec) const;
 
   /** \brief Get the NormalVectorElement-Object (bearing vector) corresponding to a specific (distorted) pixel.
    *

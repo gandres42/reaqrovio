@@ -118,13 +118,15 @@ namespace rovio{
   void Camera::distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out) const{
     const double x2 = in(0) * in(0);
     const double y2 = in(1) * in(1);
+    const double x_y = in(0) * in(1);
     const double r2 = x2 + y2;
     const double n = refrac_ind_;
     const double n2 = n * n;
 
-    const double m_distort = n2/sqrt(n2 + r2 - (n2*r2));
+    const double m_distort = n/sqrt(1 + r2 - (n2*r2));
     out(0) = in(0) * m_distort;
     out(1) = in(1) * m_distort;
+
   }
 
   void Camera::distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const{
@@ -135,16 +137,16 @@ namespace rovio{
     const double n = refrac_ind_;
     const double n2 = n * n;
 
-    const double m_distort = n2/sqrt(n2 + r2 - (n2*r2));
+    const double m_distort = n/sqrt(1 + r2 - (n2*r2));
     out(0) = in(0) * m_distort;
     out(1) = in(1) * m_distort;
 
-    const double g = n2*r2 + n2 - r2;
+    const double g = 1  + r2 - (n2*r2);
 
-    J(0,0) = n2*pow(g, -2.0)*(sqrt(g)*x2*(n2 - 1) + pow(g, 1.5));
-    J(0,1) = n2*pow(g, -1.5)*x_y*(n2 - 1);
-    J(1,0) = n2*pow(g, -1.5)*x_y*(n2 - 1);
-    J(1,1) = n2*pow(g, -2.0)*(sqrt(g)*y2*(n2 - 1) + pow(g, 1.5));
+    J(0,0) = n*pow(g, -2.0)*(sqrt(g)*x2*(n2 - 1) + pow(g, 1.5));
+    J(0,1) = n*pow(g, -1.5)*x_y*(n2 - 1);
+    J(1,0) = n*pow(g, -1.5)*x_y*(n2 - 1);
+    J(1,1) = n*pow(g, -2.0)*(sqrt(g)*y2*(n2 - 1) + pow(g, 1.5));
   }
 
   void Camera::distortEquidist(const Eigen::Vector2d& in, Eigen::Vector2d& out) const{
@@ -380,9 +382,55 @@ namespace rovio{
     return success;
   }
 
+  bool Camera::pixelToBearingAnalytical(const cv::Point2f& c,Eigen::Vector3d& vec) const{
+    // Shift origin and scale
+    Eigen::Vector2d y;
+    y(0) = (static_cast<double>(c.x) - K_(0, 2)) / K_(0, 0);
+    y(1) = (static_cast<double>(c.y) - K_(1, 2)) / K_(1, 1);
+
+    // Undistort by optimizing (only for comparison)
+    const int max_iter = 100;
+    const double tolerance = 1e-10;
+    Eigen::Vector2d ybar = y; // current guess (undistorted)
+    Eigen::Matrix2d J;
+    Eigen::Vector2d y_tmp; // current guess (distorted)
+    Eigen::Vector2d e;
+    Eigen::Vector2d du;
+    bool success = false;
+    for (int i = 0; i < max_iter; i++) {
+      distort(ybar,y_tmp,J);
+      e = y - y_tmp;
+      du = (J.transpose() * J).inverse() * J.transpose() * e;
+      ybar += du;
+      if (e.dot(e) <= tolerance){
+        success = true;
+        break;
+      }
+    }
+
+    // Undistort by analytical solution
+    const double x2 = y(0) * y(0);
+    const double y2 = y(1) * y(1);
+    const double r2 = x2 + y2;
+    const double n = refrac_ind_;
+    const double n2 = n * n;
+    const double m_undistort = sqrt((n2*r2) + n2 - r2);
+    y = y / m_undistort;
+
+    if (success){
+      printf("Analytical solution: %f %f\n", y(0), y(1));
+      printf("Optimization solution: %f %f\n", ybar(0), ybar(1));
+      const double dist = sqrt((y(0) - ybar(0))*(y(0) - ybar(0)) + (y(1) - ybar(1))*(y(1) - ybar(1)));
+      printf("Difference: %f\n", dist);
+    }
+
+    vec = Eigen::Vector3d(y(0),y(1),1.0).normalized();
+    return true;
+  }
+
   bool Camera::pixelToBearing(const cv::Point2f& c,LWF::NormalVectorElement& n) const{
     Eigen::Vector3d vec;
-    bool success = pixelToBearing(c,vec);
+    bool success = pixelToBearingAnalytical(c,vec);
     n.setFromVector(vec);
     return success;
   }
