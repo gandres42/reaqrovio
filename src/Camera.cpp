@@ -6,6 +6,7 @@ namespace rovio{
   Camera::Camera(){
     k1_ = 0.0; k2_ = 0.0; k3_ = 0.0; k4_ = 0.0; k5_ = 0.0; k6_ = 0.0;
     p1_ = 0.0; p2_ = 0.0; s1_ = 0.0; s2_ = 0.0; s3_ = 0.0; s4_ = 0.0;
+    refrac_ind_ = 1.0;
     K_.setIdentity();
     type_ = RADTAN;
     valid_radius_ = std::numeric_limits<double>::max();
@@ -38,6 +39,14 @@ namespace rovio{
     std::cout << "Set distortion parameters (Radtan) to: k1(" << k1_ << "), k2(" << k2_ << "), k3(" << k3_ << "), p1(" << p1_ << "), p2(" << p2_ << ")" << std::endl;
   }
 
+  void Camera::loadRefractive(const std::string& filename){
+    loadCameraMatrix(filename);
+    YAML::Node config = YAML::LoadFile(filename);
+    refrac_ind_ = config["refractive_index"]["data"][0].as<double>();
+
+    std::cout << "Set distortion parameters (Refractive) to: refrac_ind(" << refrac_ind_ << ")" << std::endl;
+  }
+
   void Camera::loadEquidist(const std::string& filename){
     loadCameraMatrix(filename);
     YAML::Node config = YAML::LoadFile(filename);
@@ -68,6 +77,9 @@ namespace rovio{
     if(distortionModel == "plumb_bob"){
       type_ = RADTAN;
       loadRadtan(filename);
+    } else if(distortionModel == "refractive"){
+      type_ = REFRAC;
+      loadRefractive(filename);
     } else if(distortionModel == "equidistant"){
       type_ = EQUIDIST;
       loadEquidist(filename);
@@ -101,6 +113,38 @@ namespace rovio{
     J(0,1) = 2.0 * k1_ * xy + 4.0 * k2_ * xy * r2 + 6.0 * k3_ * xy * r2 * r2 + 2 * p1_ * in(0) + 2 * p2_ * in(1);
     J(1,0) = J(0,1);
     J(1,1) = kr + 2.0 * k1_ * y2 + 4.0 * k2_ * y2 * r2 + 6.0 * k3_ * y2 * r2 * r2 + 6.0 * p1_ * in(1) + 2.0 * p2_ * in(0);
+  }
+
+  void Camera::distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out) const{
+    const double x2 = in(0) * in(0);
+    const double y2 = in(1) * in(1);
+    const double r2 = x2 + y2;
+    const double n = refrac_ind_;
+    const double n2 = n * n;
+
+    const double m_distort = n2/sqrt(n2 + r2 - (n2*r2));
+    out(0) = in(0) * m_distort;
+    out(1) = in(1) * m_distort;
+  }
+
+  void Camera::distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const{
+    const double x2 = in(0) * in(0);
+    const double y2 = in(1) * in(1);
+    const double x_y = in(0) * in(1);
+    const double r2 = x2 + y2;
+    const double n = refrac_ind_;
+    const double n2 = n * n;
+
+    const double m_distort = n2/sqrt(n2 + r2 - (n2*r2));
+    out(0) = in(0) * m_distort;
+    out(1) = in(1) * m_distort;
+
+    const double g = n2*r2 + n2 - r2;
+
+    J(0,0) = n2*pow(g, -2.0)*(sqrt(g)*x2*(n2 - 1) + pow(g, 1.5));
+    J(0,1) = n2*pow(g, -1.5)*x_y*(n2 - 1);
+    J(1,0) = n2*pow(g, -1.5)*x_y*(n2 - 1);
+    J(1,1) = n2*pow(g, -2.0)*(sqrt(g)*y2*(n2 - 1) + pow(g, 1.5));
   }
 
   void Camera::distortEquidist(const Eigen::Vector2d& in, Eigen::Vector2d& out) const{
@@ -214,6 +258,9 @@ namespace rovio{
       case RADTAN:
         distortRadtan(in,out);
         break;
+      case REFRAC:
+        distortRefractive(in,out);
+        break;
       case EQUIDIST:
         distortEquidist(in,out);
         break;
@@ -230,6 +277,9 @@ namespace rovio{
     switch(type_){
       case RADTAN:
         distortRadtan(in,out,J);
+        break;
+      case REFRAC:
+        distortRefractive(in,out,J);
         break;
       case EQUIDIST:
         distortEquidist(in,out,J);

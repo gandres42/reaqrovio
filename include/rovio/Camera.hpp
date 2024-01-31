@@ -40,6 +40,7 @@ class Camera{
   /** \brief Distortion model of the camera.
    * */
   enum ModelType{
+    REFRAC, //!< Refractive distortion model.
     RADTAN,    //!< Radial tangential distortion model.
     EQUIDIST,  //!< Equidistant distortion model.
     DS         //!< Double sphere distortion model.
@@ -51,6 +52,7 @@ class Camera{
   /** \brief Distortion Parameter. */
   double k1_,k2_,k3_,k4_,k5_,k6_;
   double p1_,p2_,s1_,s2_,s3_,s4_;
+  double refrac_ind_;
   //@}
 
   //@{
@@ -81,6 +83,13 @@ class Camera{
    */
   void loadRadtan(const std::string& filename);
 
+  /**
+   * @brief Load and set refractive distortion parameters {n} from yaml file
+   * 
+   * @param filename - Path to the yaml-file, containing the refractive index.
+   */
+  void loadRefractive(const std::string& filename);
+  
   /** \brief Loads and sets the distortion parameters {k1_, k2_, k3_, k4_} for the Equidistant distortion model from
    *         yaml-file.
    *   @param filename - Path to the yaml-file, containing the distortion coefficients.
@@ -114,6 +123,22 @@ class Camera{
    *   @param J   - Jacobian matrix of the distortion process (input to output).
    */
   void distortRadtan(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const;
+
+  /** \brief Distorts a point on the unit plane (in camera coordinates) according to the Refractive distortion model.
+   *
+   *   @param in  - Undistorted point coordinates on the unit plane (in camera coordinates).
+   *   @param out - Distorted point coordinates on the unit plane (in camera coordinates).
+   */
+  void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out) const;
+
+  /** \brief Distorts a point on the unit plane (in camera coordinates) according to the Refractive distortion model
+   *         and outputs additionally the corresponding jacobian matrix (input to output).
+   *
+   *   @param in  - Undistorted point coordinates on the unit plane (in camera coordinates).
+   *   @param out - Distorted point coordinates on the unit plane (in camera coordinates).
+   *   @param J   - Jacobian matrix of the distortion process (input to output).
+   */
+  void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const;
 
   /** \brief Distorts a point on the unit plane (in camera coordinates) according to the Equidistant distortion model.
    *
