@@ -770,7 +770,7 @@ class RovioNode{
       velocityUpdateNoise_.vel() = AvC;
 
       mpFilter_->template addUpdateMeas<2>(velocityUpdateMeas_,velocity->header.stamp.toSec());
-      updateAndPublish();
+      updateAndPublish(false);
     }
   }
 
@@ -826,7 +826,7 @@ class RovioNode{
 
   /** \brief Executes the update step of the filter and publishes the updated data.
    */
-  void updateAndPublish(){
+  void updateAndPublish(bool doPublish = true){
     if(init_state_.isInitialized()){
       // Execute the filter update.
       const double t1 = (double) cv::getTickCount();
@@ -846,7 +846,7 @@ class RovioNode{
       if(plotTiming){
         ROS_INFO_STREAM(" == Filter Update: " << (t2-t1)/cv::getTickFrequency()*1000 << " ms for processing " << c1-c2 << " images, average: " << timing_T/timing_C);
       }
-      if(mpFilter_->safe_.t_ > oldSafeTime){ // Publish only if something changed
+      if(mpFilter_->safe_.t_ > oldSafeTime && doPublish){ // Publish only if something changed and publishing is enabled (can be disabled when velocity update is from learned inertial).
         for(int i=0;i<mtState::nCam_;i++){
           if(!mpFilter_->safe_.img_[i].empty() && mpImgUpdate_->doFrameVisualisation_){
             cv::imshow("Tracker" + std::to_string(i), mpFilter_->safe_.img_[i]);
