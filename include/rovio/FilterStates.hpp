@@ -141,7 +141,8 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
   static constexpr unsigned int _att = _gyb+1;  /**<Idx. Quaternion qWM: IMU coordinates to World coordinates.*/
   static constexpr unsigned int _vep = _att+1;  /**<Idx. Position Vector MrMC: Pointing from the IMU-Frame to the Camera-Frame, expressed in IMU-Coordinates.*/
   static constexpr unsigned int _vea = _vep+1;  /**<Idx. Quaternion qCM: IMU-Coordinates to Camera-Coordinates.*/
-  static constexpr unsigned int _fea = _vea+1;  /**<Idx. Robocentric feature parametrization.*/
+  static constexpr unsigned int _ref = _vea+1;  /**<Idx. Refractive index, parameter for the distortion model.*/
+  static constexpr unsigned int _fea = _ref+1;  /**<Idx. Robocentric feature parametrization.*/
   static constexpr unsigned int _pop = _fea+1;  /**<Idx. Additonial pose in state, linear part. IrIW.*/
   static constexpr unsigned int _poa = _pop+1;  /**<Idx. Additonial pose in state, rotational part. qWI.*/
   static constexpr unsigned int _aux = _poa+1;  /**<Idx. Auxiliary state.*/
@@ -157,6 +158,7 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
     this->template getName<_att>() = "att";
     this->template getName<_vep>() = "vep";
     this->template getName<_vea>() = "vea";
+    this->template getName<_ref>() = "ref";
     this->template getName<_fea>() = "fea";
     this->template getName<_pop>() = "pop";
     this->template getName<_poa>() = "poa";
@@ -253,6 +255,18 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
     return this->template get<_att>();
   }
   //@}
+
+  //@{
+  /** \brief Get/Set the refractive index, parameter for the distortion model.
+   *
+   *  @return a reference to the refractive index.
+   */
+  inline double& ref(){
+    return this->template get<_ref>();
+  }
+  inline const double& ref() const{
+    return this->template get<_ref>();
+  }
 
   //@{
   /** \brief Get/Set the feature coordinates belonging to a specific feature i.
@@ -491,7 +505,8 @@ LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>>{
   static constexpr unsigned int _att = _gyb+1;  /**<Idx. Quaternion qWM: IMU coordinates to World coordinates.*/
   static constexpr unsigned int _vep = _att+1;  /**<Idx. Position Vector MrMC: Pointing from the IMU-Frame to the Camera-Frame, expressed in IMU-Coordinates.*/
   static constexpr unsigned int _vea = _vep+1;  /**<Idx. Quaternion qCM: IMU-Coordinates to Camera-Coordinates.*/
-  static constexpr unsigned int _fea = _vea+1;  /**<Idx. Feature parametrizations (bearing + depth parameter), array.*/
+  static constexpr unsigned int _ref = _vea+1;  /**<Idx. Refractive index, parameter for the distortion model.*/
+  static constexpr unsigned int _fea = _ref+1;  /**<Idx. Feature parametrizations (bearing + depth parameter), array.*/
   static constexpr unsigned int _pop = _fea+1;  /**<Idx. Additonial pose in state, linear part.*/
   static constexpr unsigned int _poa = _pop+1;  /**<Idx. Additonial pose in state, rotational part.*/
 
@@ -506,6 +521,7 @@ LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>>{
     this->template getName<_att>() = "att";
     this->template getName<_vep>() = "vep";
     this->template getName<_vea>() = "vea";
+    this->template getName<_ref>() = "ref";
     this->template getName<_fea>() = "fea";
     this->template getName<_pop>() = "pop";
     this->template getName<_poa>() = "poa";
