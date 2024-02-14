@@ -235,6 +235,12 @@ class Camera{
    */
   bool pixelToBearing(const cv::Point2f& c,Eigen::Vector3d& vec) const;
   
+  /** \brief Get the bearing vector, corresponding to a specific (distorted) pixel.
+   *
+   *   @param c   - (Distorted) pixel.
+   *   @param vec - Bearing vector (unit length).
+   *   @return True, if process successful.
+   */
   bool pixelToBearingAnalytical(const cv::Point2f& c,Eigen::Vector3d& vec) const;
 
   /** \brief Get the NormalVectorElement-Object (bearing vector) corresponding to a specific (distorted) pixel.
