@@ -418,10 +418,10 @@ namespace rovio{
     y = y / m_undistort;
 
     if (success){
-      printf("Analytical solution: %f %f\n", y(0), y(1));
-      printf("Optimization solution: %f %f\n", ybar(0), ybar(1));
+      // printf("Analytical solution: %f %f\n", y(0), y(1));
+      // printf("Optimization solution: %f %f\n", ybar(0), ybar(1));
       const double dist = sqrt((y(0) - ybar(0))*(y(0) - ybar(0)) + (y(1) - ybar(1))*(y(1) - ybar(1)));
-      printf("Difference: %f\n", dist);
+      // printf("Difference: %f\n", dist);
     }
 
     vec = Eigen::Vector3d(y(0),y(1),1.0).normalized();

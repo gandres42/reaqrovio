@@ -599,9 +599,9 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       }
       mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_); /* c_J_ is the jacobian defined in Camera.cpp*/ 
       F = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);  /*shape of F here is row: 2, cols 36*/
-      std::cout << "F shape " << F.rows() << " " << F.cols() << std::endl;
-      std::cout << "c_J_ shape " << c_J_.rows() << " " << c_J_.cols() << std::endl;
-      std::cout << "c_J_ " << c_J_ << std::endl;
+      // std::cout << "F shape " << F.rows() << " " << F.cols() << std::endl;
+      // std::cout << "c_J_ shape " << c_J_.rows() << " " << c_J_.cols() << std::endl;
+      // std::cout << "c_J_ " << c_J_ << std::endl;
     }
   }
 

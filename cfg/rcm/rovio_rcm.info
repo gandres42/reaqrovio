@@ -3,6 +3,7 @@
 Common
 {
 	doVECalibration false;		Should the camera-IMU extrinsics be calibrated online
+    refractiveCalibration false;
 	depthType 1;				Type of depth parametrization (0: normal, 1: inverse depth, 2: log, 3: hyperbolic)
 	verbose false;				Is the verbose active
     healthCheck false;
@@ -71,6 +72,7 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
+        ref 1.33;         Initialization for refractive index of the medium
     }
     Covariance
     {
@@ -91,10 +93,11 @@ Init
         att_1 0.1;			Y-Covariance of initial attitude [rad^2]
         att_2 0.1;			Z-Covariance of initial attitude [rad^2]
         vea 0.01;			Covariance of initial rotational camera-IMU extrinsics, same for all entries [rad^2]
+        ref_0 0.01          Covariance of initial refractive index
     }
 }
 ImgUpdate
-{
+{   
 	updateVecNormTermination 1e-4;
 	maxNumIteration 20;
     doPatchWarping true;										Should the patches be warped
@@ -200,6 +203,7 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
+        ref_0 0.01
     }
     GravityVector
     {

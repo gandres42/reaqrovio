@@ -131,6 +131,8 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
         std::get<1>(mUpdates_).doubleRegister_.registerScalar("init_cov_qWI",init_.cov_(mtState::template getId<mtState::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j,mtState::template getId<mtState::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j));
         std::get<1>(mUpdates_).doubleRegister_.registerScalar("pre_cov_IrIW",mPrediction_.prenoiP_(mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_pop>(std::get<1>(mUpdates_).inertialPoseIndex_)+j,mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_pop>(std::get<1>(mUpdates_).inertialPoseIndex_)+j));
         std::get<1>(mUpdates_).doubleRegister_.registerScalar("pre_cov_qWI",mPrediction_.prenoiP_(mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j,mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j));
+
+        std::cout << " indicies: " << mtState::template getId<mtState::_pop>(std::get<1>(mUpdates_).inertialPoseIndex_)+j << " " << mtState::template getId<mtState::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j << std::endl;
       }
     }
     if(std::get<1>(mUpdates_).bodyPoseIndex_>=0){
