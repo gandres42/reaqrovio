@@ -131,6 +131,15 @@ class Camera{
    */
   void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out) const;
 
+  /**
+   * @brief Distorts a point on the unit plane (in camera coordinates) according to the Refractive distortion model
+   * 
+   * @param in  - Undistorted point coordinates on the unit plane (in camera coordinates).
+   * @param out - Distorted point coordinates on the unit plane (in camera coordinates).
+   * @param refrac_index - Refractive index of the medium
+   */
+  void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index) const;
+  
   /** \brief Distorts a point on the unit plane (in camera coordinates) according to the Refractive distortion model
    *         and outputs additionally the corresponding jacobian matrix (input to output).
    *
@@ -139,6 +148,16 @@ class Camera{
    *   @param J   - Jacobian matrix of the distortion process (input to output).
    */
   void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const;
+
+  /**
+   * @brief Distorts a point on the unit plane (in camera coordinates) according to the Refractive distortion model
+   * 
+   * @param in  - Undistorted point coordinates on the unit plane (in camera coordinates).
+   * @param out - Distorted point coordinates on the unit plane (in camera coordinates).
+   * @param refrac_index - Refractive index of the medium
+   * @param J   - Jacobian matrix of the distortion process (input to output).
+   */
+  void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index, Eigen::Matrix2d& J) const;
 
   /** \brief Distorts a point on the unit plane (in camera coordinates) according to the Equidistant distortion model.
    *
@@ -181,6 +200,15 @@ class Camera{
   void distort(const Eigen::Vector2d& in, Eigen::Vector2d& out) const;
 
   /** \brief Distorts a point on the unit plane, according to the set distortion model (#ModelType) and to the set
+   *         distortion coefficients.
+   *
+   *   @param in  - Undistorted point coordinates on the unit plane (in camera coordinates).
+   *   @param out - Distorted point coordinates on the unit plane (in camera coordinates).
+   *   @param refrac_index - Refractive index of the medium
+   */
+  void distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index) const;
+
+  /** \brief Distorts a point on the unit plane, according to the set distortion model (#ModelType) and to the set
    *         distortion coefficients. Outputs additionally the corresponding jacobian matrix (input to output).
    *
    *   @param in  - Undistorted point coordinates on the unit plane (in camera coordinates).
@@ -188,6 +216,16 @@ class Camera{
    *   @param J   - Jacobian matrix of the distortion process (input to output).
    */
   void distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const;
+
+  /** \brief Distorts a point on the unit plane, according to the set distortion model (#ModelType) and to the set
+   *         distortion coefficients. Outputs additionally the corresponding jacobian matrix (input to output).
+   *
+   *   @param in  - Undistorted point coordinates on the unit plane (in camera coordinates).
+   *   @param out - Distorted point coordinates on the unit plane (in camera coordinates).
+   *   @param refrac_index - Refractive index of the medium
+   *   @param J   - Jacobian matrix of the distortion process (input to output).
+   */
+  void distort(const Eigen::Vector2d& in, Eigen::Vector2d& out , const double& refrac_index , Eigen::Matrix2d& J) const;
 
   /** \brief Outputs the (distorted) pixel coordinates corresponding to a given bearing vector,
    *         using the set distortion model.
@@ -197,6 +235,7 @@ class Camera{
    *   @return True, if process successful.
    */
   bool bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c) const;
+  bool bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c, const double& refrac_index) const;
 
   /** \brief Outputs the (distorted) pixel coordinates corresponding to a given bearing vector,
    *         using the set distortion model. Outputs additionally the corresponding jacobian matrix (input to output).
@@ -207,6 +246,7 @@ class Camera{
    *   @return True, if process successful.
    */
   bool bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c, Eigen::Matrix<double,2,3>& J) const;
+  bool bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c, Eigen::Matrix<double,2,3>& J, Eigen::Matrix<double,2,1>& Jdpdn, const double& refrac_index) const;
 
   /** \brief Outputs the (distorted) pixel coordinates corresponding to a given NormalVectorElement-Object
    *         (bearing vector), using the set distortion model.
@@ -227,6 +267,8 @@ class Camera{
    */
   bool bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, Eigen::Matrix<double,2,2>& J) const;
 
+  bool bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, Eigen::Matrix<double,2,2>& J, Eigen::Matrix<double,2,1>& Jdpdn, const double& refrac_index) const;
+
   /** \brief Get the bearing vector, corresponding to a specific (distorted) pixel.
    *
    *   @param c   - (Distorted) pixel.
@@ -243,6 +285,15 @@ class Camera{
    */
   bool pixelToBearingAnalytical(const cv::Point2f& c,Eigen::Vector3d& vec) const;
 
+  /** \brief Get the bearing vector, corresponding to a specific (distorted) pixel.
+   *
+   *   @param c   - (Distorted) pixel.
+   *   @param vec - Bearing vector (unit length).
+   *   @param refrac_index - Refractive index of the medium
+   *   @return True, if process successful.
+   */
+  bool pixelToBearingAnalytical(const cv::Point2f& c,Eigen::Vector3d& vec, const double& refrac_index) const;
+
   /** \brief Get the NormalVectorElement-Object (bearing vector) corresponding to a specific (distorted) pixel.
    *
    *   @param c   - (Distorted) pixel.
@@ -250,6 +301,16 @@ class Camera{
    *   @return True, if process successful.
    */
   bool pixelToBearing(const cv::Point2f& c,LWF::NormalVectorElement& n) const;
+
+  /** \brief Get the NormalVectorElement-Object (bearing vector) corresponding to a specific (distorted) pixel.
+   *
+   *   @param c   - (Distorted) pixel.
+   *   @param vec - NormalVectorElement-Object.
+   *   @param refrac_index - Refractive index of the medium
+   *   @return True, if process successful.
+   */
+  bool pixelToBearing(const cv::Point2f& c,LWF::NormalVectorElement& n, const double& refrac_index) const;
+
 
   /** \brief Function testing the camera model by randomly mapping bearing vectors to pixel coordinates and vice versa.
    */

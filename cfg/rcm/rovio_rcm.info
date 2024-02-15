@@ -3,7 +3,6 @@
 Common
 {
 	doVECalibration false;		Should the camera-IMU extrinsics be calibrated online
-    refractiveCalibration false;
 	depthType 1;				Type of depth parametrization (0: normal, 1: inverse depth, 2: log, 3: hyperbolic)
 	verbose false;				Is the verbose active
     healthCheck false;
@@ -72,7 +71,7 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
-        ref 1.33;         Initialization for refractive index of the medium
+        ref 1.3313;         Initialization for refractive index of the medium
     }
     Covariance
     {
@@ -93,7 +92,7 @@ Init
         att_1 0.1;			Y-Covariance of initial attitude [rad^2]
         att_2 0.1;			Z-Covariance of initial attitude [rad^2]
         vea 0.01;			Covariance of initial rotational camera-IMU extrinsics, same for all entries [rad^2]
-        ref_0 0.01          Covariance of initial refractive index
+        ref_0 0.0001          Covariance of initial refractive index
     }
 }
 ImgUpdate
@@ -106,6 +105,7 @@ ImgUpdate
     showCandidates false;                                       Should the possible feature candidates be displayed
     visualizePatches false;										Should the patches be visualized
     useDirectMethod false;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
+    refractiveCalibration false;                                Online refractive index estimation to compensate for refractive distortion
     startLevel 3;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
     nDetectionBuckets 100;										Number of discretization buckets used during the candidates selection
@@ -203,7 +203,7 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
-        ref_0 0.01
+        ref_0 0.0005
     }
     GravityVector
     {

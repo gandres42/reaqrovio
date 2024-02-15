@@ -208,6 +208,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double patchRejectionTh_;
   bool useDirectMethod_;  /**<If true, the innovation term is based directly on pixel intensity errors.
                               If false, the reprojection error is used for the innovation term.*/
+  bool refractiveCalibration_; /**<If true, the refractive index is estimated online.*/
   bool doFrameVisualisation_;
   bool showCandidates_;
   bool visualizePatches_;
@@ -286,6 +287,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     penaltyDistance_ = 20;
     zeroDistancePenalty_ = nDetectionBuckets_*1.0;
     useDirectMethod_ = true;
+    refractiveCalibration_ = false;
     doFrameVisualisation_ = true;
     showCandidates_ = false;
     visualizePatches_ = false;
@@ -349,6 +351,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     intRegister_.registerScalar("alignMaxUniSample",alignMaxUniSample_);
     boolRegister_.registerScalar("MotionDetection.isEnabled",doVisualMotionDetection_);
     boolRegister_.registerScalar("useDirectMethod",useDirectMethod_);
+    boolRegister_.registerScalar("refractiveCalibration",refractiveCalibration_);
     boolRegister_.registerScalar("doFrameVisualisation",doFrameVisualisation_);
     boolRegister_.registerScalar("showCandidates",showCandidates_);
     boolRegister_.registerScalar("visualizePatches",visualizePatches_);
@@ -469,10 +472,14 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       {
         std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
       }
-
-      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_);
+      Eigen::Matrix<double,2,1> Jdpdn;
+      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_, Jdpdn, candidate.ref());
 
       canditateGenerationH_  = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
+      if (refractiveCalibration_) {
+        int ref_ind = mtState::template getId<mtState::_ref>();
+        canditateGenerationH_.col(ref_ind) = -Jdpdn;
+      }
       canditateGenerationPy_ = canditateGenerationH_*filterState.cov_*canditateGenerationH_.transpose();
       candidateGenerationES_.compute(canditateGenerationPy_);
     }
@@ -593,24 +600,24 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       }
     } else {
       transformFeatureOutputCT_.jacTransform(featureOutputJac_,state);
-      if (featureOutput_.c().get_nor().getVec()(2) < 0.0)
+      if (featureOutput_.c().get_nor().getVec()(2) < 0.0)  // uses pixelToBearing
       {
         std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
       }
-      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_); /* c_J_ is the jacobian defined in Camera.cpp*/ 
+      Eigen::Matrix<double,2,1> Jdpdn;
+      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_, Jdpdn, state.ref()); /* c_J_ is the jacobian defined in Camera.cpp*/ 
+      // mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_); /* c_J_ is the jacobian defined in Camera.cpp*/ 
       F = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);  /*shape of F here is row: 2, cols 36*/
       
-      int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
-      int fea_ind = mtState::template getId<mtState::_fea>(); /* is the index for feature state*/
-
-      // assign 0.1 at (ref_ind, fea_ind) and (ref_ind, fea_ind+1) in F
-      F(0, ref_ind) = 0.000;   /* assign Jacobian*/
-      F(1, ref_ind) = 0.000;    /* assign Jacobian*/
-      
+      if (refractiveCalibration_){
+        int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
+        F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+      }
 
       // std::cout << "F shape " << F.rows() << " " << F.cols() << std::endl;
       // std::cout << "c_J_ shape " << c_J_.rows() << " " << c_J_.cols() << std::endl;
       // std::cout << "c_J_ " << c_J_ << std::endl;
+      // std::cout << "Jdpdn " << Jdpdn << std::endl;
     }
   }
 
