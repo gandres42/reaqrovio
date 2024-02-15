@@ -68,6 +68,7 @@ class FeatureCoordinates{
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   mutable cv::Point2f c_;  /**<Pixel coordinates of the feature.*/
   mutable bool valid_c_;  /**<Bool, indicating if the current feature pixel coordinates \ref c_ are valid.*/
+  mutable double refrac_;  /**<Refractive index of the camera.*/
   mutable LWF::NormalVectorElement nor_;  /**<Bearing vector, belonging to the feature.*/
   mutable bool valid_nor_;  /**<Bool, indicating if the current bearing vector \ref nor_ is valid.*/
   const Camera* mpCamera_;  /**<Pointer to the associated camera object.*/
@@ -172,6 +173,12 @@ class FeatureCoordinates{
    *  @param resetWarp - Should the warping be invalidated.
    */
   void set_nor(const LWF::NormalVectorElement& nor, const bool resetWarp = true);
+
+  /** \brief Sets the refractive index of the camera.
+   *
+   *  @param refrac - Refractive index.
+   */
+  void set_refrac(const double& refrac);
 
   /** \brief Compute the pixel warping. If necessary derives it from the bearing warping.
    *

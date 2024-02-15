@@ -91,6 +91,10 @@ namespace rovio{
     }
   }
 
+  void FeatureCoordinates::set_refrac(const double& refrac){
+    refrac_ = refrac;
+  }
+
   void FeatureCoordinates::set_nor(const LWF::NormalVectorElement& nor, const bool resetWarp){
     nor_ = nor;
     valid_nor_ = true;
