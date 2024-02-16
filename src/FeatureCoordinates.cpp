@@ -58,7 +58,12 @@ namespace rovio{
   bool FeatureCoordinates::com_nor() const{
     if(!valid_nor_){
       assert(mpCamera_ != nullptr);
-      if(valid_c_ && mpCamera_->pixelToBearing(c_,nor_)){
+      std::cout << "FeatureCoordinates::com_nor()" << std::endl;
+      std::cout << "valid nor" << std::endl;
+
+      std::cout << "refrac_ from est" << refrac_ << std::endl;
+
+      if(valid_c_ && mpCamera_->pixelToBearing(c_,nor_, refrac_)){
         valid_nor_ = true;
       }
     }

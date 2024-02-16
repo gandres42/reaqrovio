@@ -458,6 +458,17 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
       mpMultiCamera->qCB_[i] = qCM(i);
     }
   }
+
+  /**
+   * @brief Update refractive index
+   * @param ref - new refractive index
+   */
+  void updateRefIndex(FeatureSetManager<nLevels,patchSize,nCam,nMax>& fsm, double ref){
+    for(int i=0;i<nMax_;i++){
+      fsm.features_[i].mpCoordinates_->set_refrac(ref);
+    }
+  }
+    
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

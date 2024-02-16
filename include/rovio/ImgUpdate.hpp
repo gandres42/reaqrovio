@@ -611,7 +611,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       
       if (refractiveCalibration_){
         int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
-        F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+        F.col(ref_ind) = Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
       }
 
       // std::cout << "F shape " << F.rows() << " " << F.cols() << std::endl;

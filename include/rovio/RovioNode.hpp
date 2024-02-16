@@ -155,6 +155,7 @@ class RovioNode{
   ros::Publisher pubBadFeatureIds;
   ros::Publisher pubExtrinsics_[mtState::nCam_];
   ros::Publisher pubImuBias_;
+  ros::Publisher pubRefractiveIndex_;
 
   image_transport::Publisher pubImg_;
   image_transport::Publisher pubPatchImg_;
@@ -173,6 +174,7 @@ class RovioNode{
   visualization_msgs::Marker featureIdsMsgs_;
   visualization_msgs::Marker badFeatureIdsMsgs_;
   sensor_msgs::Imu imuBiasMsg_;
+  geometry_msgs::PointStamped refractiveIndexMsg_;
   int msgSeq_;
 
   // Rovio outputs and coordinate transformations
@@ -262,6 +264,7 @@ class RovioNode{
       pubExtrinsics_[camID] = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("rovio/extrinsics" + std::to_string(camID), 1 );
     }
     pubImuBias_ = nh_.advertise<sensor_msgs::Imu>("rovio/imu_biases", 1 );
+    pubRefractiveIndex_ = nh_.advertise<geometry_msgs::PointStamped>("rovio/refractive_index", 1 );
 
     image_transport::ImageTransport it(nh_);
     pubImg_ = it.advertise("rovio/image", 1);
@@ -872,6 +875,8 @@ class RovioNode{
         mtFilterState& filterState = mpFilter_->safe_;
 	      mtState& state = mpFilter_->safe_.state_;
         state.updateMultiCameraExtrinsics(&mpFilter_->multiCamera_);
+        state.updateRefIndex(filterState.fsm_, imuOutput_.ref());
+
         MXD& cov = mpFilter_->safe_.cov_;
         imuOutputCT_.transformState(state,imuOutput_);
 
@@ -1005,6 +1010,15 @@ class RovioNode{
           pubTransform_.publish(transformMsg_);
         }
 
+        // Publish Refractive Index
+        if(pubRefractiveIndex_.getNumSubscribers() > 0){
+          refractiveIndexMsg_.header.seq = msgSeq_;
+          refractiveIndexMsg_.header.stamp = ros::Time(mpFilter_->safe_.t_);
+          refractiveIndexMsg_.point.x = imuOutput_.ref();
+          refractiveIndexMsg_.point.z = 1.333;
+          pubRefractiveIndex_.publish(refractiveIndexMsg_);
+        }
+
         if(pub_T_J_W_transform.getNumSubscribers() > 0 || forceTransformPublishing_){
           if (mpPoseUpdate_->inertialPoseIndex_ >= 0) {
             Eigen::Vector3d IrIW = state.poseLin(mpPoseUpdate_->inertialPoseIndex_);
@@ -1086,7 +1100,6 @@ class RovioNode{
             if(filterState.fsm_.isValid_[i]){
 
               FeatureManager<mtState::nLevels_,mtState::patchSize_,mtState::nCam_>& f = filterState.fsm_.features_[i];
-              
 
               geometry_msgs::Point validFeature;
               validFeature.x = filterState.fsm_.features_[i].idx_;

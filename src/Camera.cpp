@@ -536,6 +536,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
 
     vec = Eigen::Vector3d(y(0),y(1),1.0).normalized();
     std::cout << "in pixelToBearingAnalytical" << std::endl;
+    std::cout << "refrac_ind_: " << refrac_ind_ << std::endl;
     return true;
   }
 
