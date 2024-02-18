@@ -89,15 +89,13 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     subHandlers_["VelocityUpdate"] = &std::get<2>(mUpdates_);
     boolRegister_.registerScalar("Common.doVECalibration",init_.state_.aux().doVECalibration_);
     intRegister_.registerScalar("Common.depthType",depthTypeInt_);
-    doubleRegister_.removeScalarByVar(init_.state_.ref());
-    init_.state_.ref() = 1.00;
-    // init_.cov_.ref() = 0.2;
 
     for(int camID=0;camID<mtState::nCam_;camID++){
       cameraCalibrationFile_[camID] = "";
       stringRegister_.registerScalar("Camera" + std::to_string(camID) + ".CalibrationFile",cameraCalibrationFile_[camID]);
       doubleRegister_.registerVector("Camera" + std::to_string(camID) + ".MrMC",init_.state_.aux().MrMC_[camID]);
       doubleRegister_.registerQuaternion("Camera" + std::to_string(camID) + ".qCM",init_.state_.aux().qCM_[camID]);
+      doubleRegister_.registerScalar("Init.State.ref", multiCamera_.cameras_[camID].refrac_ind_);
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(0));
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(1));
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(2));
@@ -178,8 +176,6 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     boolRegister_.registerScalar("PoseUpdate.doVisualization",init_.plotPoseMeas_);
     reset(0.0);
     std::cout << " ####################### Refractive index: " << init_.state_.ref() << std::endl;
-    // state.updateRefIndex(filterState.fsm_, imuOutput_.ref());
-    // init_.state_.updateRefIndex(init_.fsm_);
 
   }
 

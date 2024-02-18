@@ -874,14 +874,8 @@ class RovioNode{
         // Obtain the save filter state.
         mtFilterState& filterState = mpFilter_->safe_;
 	      mtState& state = mpFilter_->safe_.state_;
-        state.updateMultiCameraExtrinsics(&mpFilter_->multiCamera_);
-        
-        if (imuOutput_.ref() <1.0){
-          std::cout << "imuOutput_.ref() < 1.0" << std::endl;
-        }
-        
-        state.updateRefIndex(&mpFilter_->multiCamera_);
-        // state.updateRefIndex(&mpFilter_->mtFilterState.fsm_);
+        state.updateMultiCameraExtrinsics(&mpFilter_->multiCamera_);        
+        state.updateRefIndex(&mpFilter_->multiCamera_);                    // Updates the refractive index to be use by functions in camera class, eg pixelToBearing()
 
         MXD& cov = mpFilter_->safe_.cov_;
         imuOutputCT_.transformState(state,imuOutput_);

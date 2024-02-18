@@ -42,7 +42,7 @@ namespace rovio{
   void Camera::loadRefractive(const std::string& filename){
     loadCameraMatrix(filename);
     YAML::Node config = YAML::LoadFile(filename);
-    refrac_ind_ = config["refractive_index"]["data"][0].as<double>();
+    // refrac_ind_ = config["refractive_index"]["data"][0].as<double>();
 
     std::cout << "Set distortion parameters (Refractive) to: refrac_ind(" << refrac_ind_ << ")" << std::endl;
   }
@@ -121,7 +121,6 @@ namespace rovio{
     const double x_y = in(0) * in(1);
     const double r2 = x2 + y2;
     const double n = refrac_ind_;
-    std::cout << "in distortRefractive, n = " << n << std::endl;
     const double n2 = n * n;
 
     const double m_distort = n/sqrt(1 + r2 - (n2*r2));
@@ -379,7 +378,6 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
 
     // Distort
     Eigen::Vector2d distorted;
-    // std::cout << "in bearingToPixel" << std::endl;
     distort(undistorted,distorted);
 
     // Shift origin and scale
@@ -584,9 +582,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     y = y / m_undistort;
 
     vec = Eigen::Vector3d(y(0),y(1),1.0).normalized();
-    std::cout << "in pixelToBearingAnalytical" << std::endl;
-    std::cout << "refrac_ind_: " << refrac_ind_ << std::endl;
-    std::cout << "###### pixelToBearingAnalytical using refrac_ind_ = " << refrac_ind_ << "\n";
+    // std::cout << "###### pixelToBearingAnalytical using refrac_ind_ = " << refrac_ind_ << "\n";
     return true;
   }
 

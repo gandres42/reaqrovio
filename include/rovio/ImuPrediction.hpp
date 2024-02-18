@@ -162,7 +162,6 @@ class ImuPrediction: public LWF::Prediction<FILTERSTATE>{
     const V3D imuRor = meas_.template get<mtMeas::_gyr>()-state.gyb();
     const V3D dOmega = dt*imuRor;
     F.setZero();
-    std::cout << "F before: " << F.rows() << " " << F.cols() << std::endl;
 
     F.template block<3,3>(mtState::template getId<mtState::_pos>(),mtState::template getId<mtState::_pos>()) = M3D::Identity();
     F.template block<3,3>(mtState::template getId<mtState::_pos>(),mtState::template getId<mtState::_vel>()) = -dt*MPD(state.qWM()).matrix();
@@ -176,11 +175,7 @@ class ImuPrediction: public LWF::Prediction<FILTERSTATE>{
     F.template block<3,3>(mtState::template getId<mtState::_att>(),mtState::template getId<mtState::_gyb>()) = -dt*MPD(state.qWM()).matrix()*Lmat(dOmega);
     F.template block<3,3>(mtState::template getId<mtState::_att>(),mtState::template getId<mtState::_att>()) = M3D::Identity();
     F.template block<1,1>(mtState::template getId<mtState::_ref>(),mtState::template getId<mtState::_ref>()) = M1D::Identity();
-
-    std::cout << "F shape: " << F.rows() << " " << F.cols() << std::endl;
-    std::cout << "att index: " << mtState::template getId<mtState::_att>() << std::endl;
-    std::cout << "gyb index: " << mtState::template getId<mtState::_gyb>() << std::endl;
-    std::cout << "ref index: " << mtState::template getId<mtState::_ref>() << std::endl;
+    
     LWF::NormalVectorElement nOut;
     QPD qm;
     for(unsigned int i=0;i<mtState::nMax_;i++){

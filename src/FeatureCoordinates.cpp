@@ -41,9 +41,6 @@ namespace rovio{
   bool FeatureCoordinates::com_c() const{
     if(!valid_c_){
       assert(mpCamera_ != nullptr);
-      // if(valid_nor_ && mpCamera_->bearingToPixel(nor_,c_, 1.3313)){
-      //   valid_c_ = true;
-      // }
       if(valid_nor_ && mpCamera_->bearingToPixel(nor_,c_)){
         valid_c_ = true;
       }
@@ -61,11 +58,6 @@ namespace rovio{
   bool FeatureCoordinates::com_nor() const{
     if(!valid_nor_){
       assert(mpCamera_ != nullptr);
-      std::cout << "FeatureCoordinates::com_nor()" << std::endl;
-      std::cout << "valid nor" << std::endl;
-
-      std::cout << "refrac_.s_ from est" << refrac_.s_ << std::endl;
-
       if(valid_c_ && mpCamera_->pixelToBearing(c_,nor_)){
         valid_nor_ = true;
       }
@@ -93,20 +85,12 @@ namespace rovio{
     c_ = c;
     valid_c_ = true;
     valid_nor_ = false;
-    // refrac_.s_ = 1.3313;
     if(trackWarping_ && resetWarp){
       valid_warp_c_ = false;
       valid_warp_nor_ = false;
     }
   }
 
-  void FeatureCoordinates::set_refrac(const double& refrac){
-    
-    std::cout << "######## refrac_.s_ from est in set_refrac  ###############   " << refrac << std::endl;
-    // refrac_ = refrac;
-    refrac_.s_ = refrac;
-    refrac_debug_ = refrac;
-  }
 
   void FeatureCoordinates::set_nor(const LWF::NormalVectorElement& nor, const bool resetWarp){
     nor_ = nor;

@@ -595,10 +595,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         Eigen::Matrix<double,2,1> Jdpdn;
         mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_, Jdpdn, state.ref()); /* c_J_ is the jacobian defined in Camera.cpp*/ 
         F = -A_red_*c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
-        
+
         if (refractiveCalibration_){
           int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
-          F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+          F.col(ref_ind) = -A_red_*Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
         }
 
       } else {
@@ -621,10 +621,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
       }
 
-      // std::cout << "F shape " << F.rows() << " " << F.cols() << std::endl;
-      // std::cout << "c_J_ shape " << c_J_.rows() << " " << c_J_.cols() << std::endl;
-      // std::cout << "c_J_ " << c_J_ << std::endl;
-      // std::cout << "Jdpdn " << Jdpdn << std::endl;
     }
   }
 
