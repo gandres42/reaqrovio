@@ -246,6 +246,7 @@ class Camera{
    *   @return True, if process successful.
    */
   bool bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c, Eigen::Matrix<double,2,3>& J) const;
+  bool bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c, Eigen::Matrix<double,2,3>& J, const double& refrac_index) const;
   bool bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c, Eigen::Matrix<double,2,3>& J, Eigen::Matrix<double,2,1>& Jdpdn, const double& refrac_index) const;
 
   /** \brief Outputs the (distorted) pixel coordinates corresponding to a given NormalVectorElement-Object
@@ -256,6 +257,7 @@ class Camera{
    *   @return True, if process successful.
    */
   bool bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c) const;
+  bool bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, const double& refrac_index) const;
 
   /** \brief Outputs the (distorted) pixel coordinates corresponding to a given NormalVectorElement-Object
    *         (bearing vector), using the set distortion model.
@@ -266,6 +268,7 @@ class Camera{
    *   @return True, if process successful.
    */
   bool bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, Eigen::Matrix<double,2,2>& J) const;
+  bool bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, Eigen::Matrix<double,2,2>& J, const double& refrac_index) const;
 
   bool bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, Eigen::Matrix<double,2,2>& J, Eigen::Matrix<double,2,1>& Jdpdn, const double& refrac_index) const;
 

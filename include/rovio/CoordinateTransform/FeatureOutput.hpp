@@ -132,7 +132,6 @@ class TransformFeatureOutputCT:public LWF::CoordinateTransform<STATE,FeatureOutp
       const Eigen::Matrix<double,3,3> J_DrDP_CrCP = MPD(qDC).matrix();
       const Eigen::Matrix<double,3,2> J_CrCP_nor = input.dep(ID_).getDistance()*input.CfP(ID_).get_nor().getM();
       output.c().set_warp_nor(J_nor_DrDP*J_DrDP_CrCP*J_CrCP_nor*input.CfP(ID_).get_warp_nor());
-      // output.c().set_refrac(1.023);
     }
   }
   void jacTransform(MXD& J, const mtInput& input) const{

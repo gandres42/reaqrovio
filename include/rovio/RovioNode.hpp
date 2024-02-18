@@ -875,7 +875,13 @@ class RovioNode{
         mtFilterState& filterState = mpFilter_->safe_;
 	      mtState& state = mpFilter_->safe_.state_;
         state.updateMultiCameraExtrinsics(&mpFilter_->multiCamera_);
-        state.updateRefIndex(filterState.fsm_, imuOutput_.ref());
+        
+        if (imuOutput_.ref() <1.0){
+          std::cout << "imuOutput_.ref() < 1.0" << std::endl;
+        }
+        
+        state.updateRefIndex(&mpFilter_->multiCamera_);
+        // state.updateRefIndex(&mpFilter_->mtFilterState.fsm_);
 
         MXD& cov = mpFilter_->safe_.cov_;
         imuOutputCT_.transformState(state,imuOutput_);

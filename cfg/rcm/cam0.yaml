@@ -16,4 +16,4 @@ distortion_coefficients:
 refractive_index: 
   rows: 1
   cols: 2
-  data: [1.3313, 1.0]
+  data: [1.0, 1.0]

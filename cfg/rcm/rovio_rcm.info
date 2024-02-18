@@ -61,9 +61,9 @@ Init
         vel_0 0;			X-entry of initial velocity (robocentric, IMU) [m/s]
         vel_1 0;			Y-entry of initial velocity (robocentric, IMU) [m/s]
         vel_2 0;			Z-entry of initial velocity (robocentric, IMU) [m/s]
-        acb_0 0;			X-entry of accelerometer bias [m/s^2]
-        acb_1 0;			Y-entry of accelerometer bias [m/s^2]
-        acb_2 0;			Z-entry of accelerometer bias [m/s^2]
+        acb_0 -0.1;			X-entry of accelerometer bias [m/s^2]
+        acb_1 0.0;			Y-entry of accelerometer bias [m/s^2]
+        acb_2 0.1;			Z-entry of accelerometer bias [m/s^2]
         gyb_0 0;			X-entry of gyroscope bias [rad/s]
         gyb_1 0;			Y-entry of gyroscope bias [rad/s]
         gyb_2 0;			Z-entry of gyroscope bias [rad/s]
@@ -71,16 +71,16 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
-        ref 1.10;         Initialization for refractive index of the medium
+        ref 1.0;         Initialization for refractive index of the medium
     }
     Covariance
     {
         pos_0 0.0001;		X-Covariance of initial position [m^2]
         pos_1 0.0001;		Y-Covariance of initial position [m^2]
         pos_2 0.0001;		Z-Covariance of initial position [m^2]
-        vel_0 1.0;			X-Covariance of initial velocity [m^2/s^2]
-        vel_1 1.0;			Y-Covariance of initial velocity [m^2/s^2]
-        vel_2 1.0;			Z-Covariance of initial velocity [m^2/s^2]
+        vel_0 0.1;			X-Covariance of initial velocity [m^2/s^2]
+        vel_1 0.1;			Y-Covariance of initial velocity [m^2/s^2]
+        vel_2 0.1;			Z-Covariance of initial velocity [m^2/s^2]
         acb_0 4e-4;			X-Covariance of initial accelerometer bias [m^2/s^4]
         acb_1 4e-4;			Y-Covariance of initial accelerometer bias [m^2/s^4]
         acb_2 4e-4;			Z-Covariance of initial accelerometer bias [m^2/s^4]
@@ -203,7 +203,7 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
-        ref_0 0.000005
+        ref_0 0.00002
     }
     GravityVector
     {

@@ -463,9 +463,16 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
    * @brief Update refractive index
    * @param ref - new refractive index
    */
-  void updateRefIndex(FeatureSetManager<nLevels,patchSize,nCam,nMax>& fsm, double ref){
-    for(int i=0;i<nMax_;i++){
-      fsm.features_[i].mpCoordinates_->set_refrac(ref);
+  void updateRefIndex(MultiCamera<nCam>* mpMultiCamera){
+    // if (ref < 1.0) {
+    //   std::cout << "Refractive index cannot be less than 1.0. Setting to 1.3313" << std::endl;
+    //   ref = 1.3313;
+    // }
+    
+    // std::cout << " Updating refractive index to " << ref << std::endl;
+
+    for(int i=0;i<nCam;i++){
+      mpMultiCamera->cameras_[i].refrac_ind_ = ref();
     }
   }
     

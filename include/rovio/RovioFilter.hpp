@@ -89,6 +89,10 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     subHandlers_["VelocityUpdate"] = &std::get<2>(mUpdates_);
     boolRegister_.registerScalar("Common.doVECalibration",init_.state_.aux().doVECalibration_);
     intRegister_.registerScalar("Common.depthType",depthTypeInt_);
+    doubleRegister_.removeScalarByVar(init_.state_.ref());
+    init_.state_.ref() = 1.00;
+    // init_.cov_.ref() = 0.2;
+
     for(int camID=0;camID<mtState::nCam_;camID++){
       cameraCalibrationFile_[camID] = "";
       stringRegister_.registerScalar("Camera" + std::to_string(camID) + ".CalibrationFile",cameraCalibrationFile_[camID]);
@@ -173,6 +177,10 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     mPrediction_.doubleRegister_.removeScalarByStr("kappa");
     boolRegister_.registerScalar("PoseUpdate.doVisualization",init_.plotPoseMeas_);
     reset(0.0);
+    std::cout << " ####################### Refractive index: " << init_.state_.ref() << std::endl;
+    // state.updateRefIndex(filterState.fsm_, imuOutput_.ref());
+    // init_.state_.updateRefIndex(init_.fsm_);
+
   }
 
   /** \brief Reloads the camera calibration for all cameras and resets the depth map type.

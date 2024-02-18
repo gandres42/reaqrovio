@@ -178,7 +178,6 @@ class ImuOutputCT:public LWF::CoordinateTransform<STATE,StandardOutput>{
     output.BvB()  = -input.MvM(); // minus is required!
     output.qBW()  = input.qWM().inverted();
     output.ref()  = input.ref();                     // refractive index
-    std::cout << "refractive index: " << input.ref() << std::endl;
   }
   void jacTransform(MXD& J, const mtInput& input) const{
     J.setZero();

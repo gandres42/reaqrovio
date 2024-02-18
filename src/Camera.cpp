@@ -121,11 +121,13 @@ namespace rovio{
     const double x_y = in(0) * in(1);
     const double r2 = x2 + y2;
     const double n = refrac_ind_;
+    std::cout << "in distortRefractive, n = " << n << std::endl;
     const double n2 = n * n;
 
     const double m_distort = n/sqrt(1 + r2 - (n2*r2));
     out(0) = in(0) * m_distort;
     out(1) = in(1) * m_distort;
+
 
   }
 
@@ -377,6 +379,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
 
     // Distort
     Eigen::Vector2d distorted;
+    // std::cout << "in bearingToPixel" << std::endl;
     distort(undistorted,distorted);
 
     // Shift origin and scale
@@ -392,6 +395,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
 
     // Distort
     Eigen::Vector2d distorted;
+    // std::cout << "in bearingToPixel with refrac_index" << std::endl;
     distort(undistorted,distorted, refrac_index);
 
     // Shift origin and scale
@@ -413,6 +417,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     // Distort
     Eigen::Vector2d distorted;
     Eigen::Matrix2d J2;
+    // std::cout << "in bearingToPixel with distort(undistorted,distorted, refrac_index, J2)" << std::endl;
     distort(undistorted,distorted, refrac_index, J2);
 
     // Shift origin and scale
@@ -451,7 +456,38 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     // Distort
     Eigen::Vector2d distorted;
     Eigen::Matrix2d J2;
+    // std::cout << "in bearingToPixel with distort(undistorted,distorted,J2)" << std::endl;
+
     distort(undistorted,distorted,J2);
+
+    // Shift origin and scale
+    c.x = static_cast<float>(K_(0, 0)*distorted(0) + K_(0, 2));
+    c.y = static_cast<float>(K_(1, 1)*distorted(1) + K_(1, 2));
+    Eigen::Matrix2d J3; J3.setZero();
+    J3(0,0) = K_(0, 0);
+    J3(1,1) = K_(1, 1);
+
+    J = J3*J2*J1;
+
+    return true;
+  }
+
+  bool Camera::bearingToPixel(const Eigen::Vector3d& vec, cv::Point2f& c, Eigen::Matrix<double,2,3>& J, const double& refrac_index) const{
+    // Project
+    if(vec(2)<=0) return false;
+    const Eigen::Vector2d undistorted = Eigen::Vector2d(vec(0)/vec(2),vec(1)/vec(2));
+    Eigen::Matrix<double,2,3> J1; J1.setZero();
+    J1(0,0) = 1.0/vec(2);
+    J1(0,2) = -vec(0)/pow(vec(2),2);
+    J1(1,1) = 1.0/vec(2);
+    J1(1,2) = -vec(1)/pow(vec(2),2);
+
+    // Distort
+    Eigen::Vector2d distorted;
+    Eigen::Matrix2d J2;
+    // std::cout << "in bearingToPixel with distort(undistorted,distorted,refrac_index,J2)" << std::endl;
+
+    distort(undistorted,distorted,refrac_index,J2);
 
     // Shift origin and scale
     c.x = static_cast<float>(K_(0, 0)*distorted(0) + K_(0, 2));
@@ -468,12 +504,25 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
   bool Camera::bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c) const{
     return bearingToPixel(n.getVec(),c);
   }
+  
+  bool Camera::bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, const double& refrac_index) const{
+    return bearingToPixel(n.getVec(),c, refrac_index);
+  }
 
   bool Camera::bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, Eigen::Matrix<double,2,2>& J) const{
     Eigen::Matrix<double,3,2> J1;
     J1 = n.getM();
     Eigen::Matrix<double,2,3> J2;
     const bool success = bearingToPixel(n.getVec(),c,J2);
+    J = J2*J1;
+    return success;
+  }
+
+  bool Camera::bearingToPixel(const LWF::NormalVectorElement& n, cv::Point2f& c, Eigen::Matrix<double,2,2>& J, const double& refrac_index) const{
+    Eigen::Matrix<double,3,2> J1;
+    J1 = n.getM();
+    Eigen::Matrix<double,2,3> J2;
+    const bool success = bearingToPixel(n.getVec(),c,J2, refrac_index);
     J = J2*J1;
     return success;
   }
@@ -537,6 +586,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     vec = Eigen::Vector3d(y(0),y(1),1.0).normalized();
     std::cout << "in pixelToBearingAnalytical" << std::endl;
     std::cout << "refrac_ind_: " << refrac_ind_ << std::endl;
+    std::cout << "###### pixelToBearingAnalytical using refrac_ind_ = " << refrac_ind_ << "\n";
     return true;
   }
 
@@ -554,7 +604,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     y = y / m_undistort;
 
     vec = Eigen::Vector3d(y(0),y(1),1.0).normalized();
-    std::cout << "in pixelToBearingAnalytical with ref from state" << std::endl;
+    // std::cout << "in pixelToBearingAnalytical with ref from state" << std::endl;
 
     return true;
   }
