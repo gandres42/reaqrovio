@@ -714,6 +714,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
     // Actualize camera extrinsics (gets also update in calls to TransformFeatureOutputCT)
     state.updateMultiCameraExtrinsics(mpMultiCamera_);
+    state.updateRefIndex(mpMultiCamera_);
 
     while(ID < mtState::nMax_ && foundValidMeasurement == false){
       if(filterState.fsm_.isValid_[ID]){
@@ -962,8 +963,9 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     typename mtFilterState::mtState& state = filterState.state_;
     MXD& cov = filterState.cov_;
 
-    // Actualize camera extrinsics
+    // Actualize camera extrinsics and refractive index
     state.updateMultiCameraExtrinsics(mpMultiCamera_);
+    state.updateRefIndex(mpMultiCamera_);
 
     int countTracked = 0;
     // For all features in the state.
