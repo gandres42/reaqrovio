@@ -1,5 +1,7 @@
 #include "rovio/Camera.hpp"
 #include "yaml-cpp/yaml.h"
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 namespace rovio{
 
@@ -83,7 +85,13 @@ namespace rovio{
     } else if(distortionModel == "equidistant"){
       type_ = EQUIDIST;
       loadEquidist(filename);
-    } else if(distortionModel == "ds"){
+    } else if(distortionModel == "equirefractive"){
+      std::cout << "Loading equirefractive model" << std::endl;
+      type_ = EQUIREFRAC;
+      loadEquidist(filename);
+      loadRefractive(filename);
+    }
+    else if(distortionModel == "ds"){
       type_ = DS;
       loadDoubleSphere(filename);
     } else {
@@ -129,6 +137,12 @@ namespace rovio{
 
 
   }
+  void Camera::distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out) const{
+    Eigen::Vector2d temp;
+    distortRefractive(in, temp);
+    distortEquidist(temp, out);
+
+  }
 
   void Camera::distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index) const{
     const double x2 = in(0) * in(0);
@@ -164,6 +178,16 @@ namespace rovio{
     J(1,1) = n*pow(g, -2.0)*(sqrt(g)*y2*(n2 - 1) + pow(g, 1.5));
   }
 
+  void Camera::distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const{
+    Eigen::Vector2d temp;
+    Eigen::Matrix2d J_temp_refrac;
+    Eigen::Matrix2d J_temp_equi;
+
+    distortRefractive(in, temp, J_temp_refrac);
+    distortEquidist(temp, out, J_temp_equi);
+    J = J_temp_equi * J_temp_refrac;
+  }
+
   void Camera::distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index ,Eigen::Matrix2d& J) const{
     const double x2 = in(0) * in(0);
     const double y2 = in(1) * in(1);
@@ -182,6 +206,16 @@ namespace rovio{
     J(0,1) = n*pow(g, -1.5)*x_y*(n2 - 1);
     J(1,0) = n*pow(g, -1.5)*x_y*(n2 - 1);
     J(1,1) = n*pow(g, -2.0)*(sqrt(g)*y2*(n2 - 1) + pow(g, 1.5));
+  }
+
+  void Camera::distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index, Eigen::Matrix2d& J) const{
+    Eigen::Vector2d temp;
+    Eigen::Matrix2d J_temp_refrac;
+    Eigen::Matrix2d J_temp_equi;
+
+    distortRefractive(in, temp, refrac_index, J_temp_refrac);
+    distortEquidist(temp, out, J_temp_equi);
+    J = J_temp_equi * J_temp_refrac;
   }
 
   void Camera::distortEquidist(const Eigen::Vector2d& in, Eigen::Vector2d& out) const{
@@ -301,6 +335,9 @@ namespace rovio{
       case EQUIDIST:
         distortEquidist(in,out);
         break;
+      case EQUIREFRAC:
+        distortEquiRefractive(in,out);
+        break;
       case DS:
         distortDoubleSphere(in,out);
         break;
@@ -311,6 +348,7 @@ namespace rovio{
   }
 
   void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index) const{
+    std:: cout << "in distort with refrac_index" << std::endl;
     switch(type_){
       case RADTAN:
         distortRadtan(in,out);
@@ -320,6 +358,9 @@ namespace rovio{
         break;
       case EQUIDIST:
         distortEquidist(in,out);
+        break;
+      case EQUIREFRAC:
+        distortEquiRefractive(in,out);
         break;
       case DS:
         distortDoubleSphere(in,out);
@@ -341,6 +382,9 @@ namespace rovio{
       case EQUIDIST:
         distortEquidist(in,out,J);
         break;
+      case EQUIREFRAC:
+        distortEquiRefractive(in,out,J);
+        break;
       case DS:
         distortDoubleSphere(in,out,J);
         break;
@@ -351,6 +395,7 @@ namespace rovio{
   }
 
 void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index, Eigen::Matrix2d& J) const{
+
     switch(type_){
       case RADTAN:
         distortRadtan(in,out,J);
@@ -360,6 +405,9 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
         break;
       case EQUIDIST:
         distortEquidist(in,out,J);
+        break;
+      case EQUIREFRAC:
+        distortEquiRefractive(in,out, refrac_index,J);
         break;
       case DS:
         distortDoubleSphere(in,out,J);
@@ -558,6 +606,12 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
         success = true;
         break;
       }
+      // else{
+      //   std::cout << "Failed"<< std::endl;
+      //   std::cout << "e.dot(e) = " << e.dot(e) << std::endl;
+      //   std::cout << "ybar = " << ybar.transpose() << std::endl;
+        
+      // }
     }
     if(success){
       y = ybar;
@@ -569,8 +623,26 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
   bool Camera::pixelToBearingAnalytical(const cv::Point2f& c,Eigen::Vector3d& vec) const{
     // Shift origin and scale
     Eigen::Vector2d y;
-    y(0) = (static_cast<double>(c.x) - K_(0, 2)) / K_(0, 0);
-    y(1) = (static_cast<double>(c.y) - K_(1, 2)) / K_(1, 1);
+    // y(0) = (static_cast<double>(c.x) - K_(0, 2)) / K_(0, 0);
+    // y(1) = (static_cast<double>(c.y) - K_(1, 2)) / K_(1, 1);
+    y(0) = static_cast<double>(c.x);
+    y(1) = static_cast<double>(c.y);
+
+    
+    // Convert point to opencv format
+    cv::Mat y_mat(1, 2, CV_32F);
+    y_mat.at<float>(0, 0) = y(0);
+    y_mat.at<float>(0, 1) = y(1);
+    y_mat = y_mat.reshape(2); // Nx1, 2-channel
+
+
+    cv::Matx33d K(K_(0,0), 0, K_(0,2), 0, K_(1,1), K_(1,2), 0, 0, 1);
+    cv::Vec4d D(k1_, k2_, k3_, k4_);
+    // cv::undistortPoints(y_mat, undistorted, K, D);
+    cv::fisheye::undistortPoints(y_mat, y_mat, K, D);
+
+    y(0) = y_mat.at<float>(0, 0);
+    y(1) = y_mat.at<float>(0, 1);
 
     // Undistort by analytical solution
     const double x2 = y(0) * y(0);
@@ -608,7 +680,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
   bool Camera::pixelToBearing(const cv::Point2f& c,LWF::NormalVectorElement& n) const{
     Eigen::Vector3d vec;
     bool success;
-    if (type_==REFRAC){
+    if (type_==REFRAC || type_==EQUIREFRAC){
       success = pixelToBearingAnalytical(c,vec);
     }
     else{

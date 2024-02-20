@@ -32,6 +32,8 @@
 #include "lightweight_filtering/common.hpp"
 #include <opencv2/features2d/features2d.hpp>
 #include "lightweight_filtering/State.hpp"
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 
 namespace rovio{
 
@@ -43,6 +45,7 @@ class Camera{
     REFRAC, //!< Refractive distortion model.
     RADTAN,    //!< Radial tangential distortion model.
     EQUIDIST,  //!< Equidistant distortion model.
+    EQUIREFRAC, //!< Equidistant(Refractive) distortion model.
     DS         //!< Double sphere distortion model.
   } type_;
 
@@ -130,6 +133,7 @@ class Camera{
    *   @param out - Distorted point coordinates on the unit plane (in camera coordinates).
    */
   void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out) const;
+  void distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out) const;
 
   /**
    * @brief Distorts a point on the unit plane (in camera coordinates) according to the Refractive distortion model
@@ -148,6 +152,7 @@ class Camera{
    *   @param J   - Jacobian matrix of the distortion process (input to output).
    */
   void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const;
+  void distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J) const;
 
   /**
    * @brief Distorts a point on the unit plane (in camera coordinates) according to the Refractive distortion model
@@ -158,6 +163,7 @@ class Camera{
    * @param J   - Jacobian matrix of the distortion process (input to output).
    */
   void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index, Eigen::Matrix2d& J) const;
+  void distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index, Eigen::Matrix2d& J) const;
 
   /** \brief Distorts a point on the unit plane (in camera coordinates) according to the Equidistant distortion model.
    *
