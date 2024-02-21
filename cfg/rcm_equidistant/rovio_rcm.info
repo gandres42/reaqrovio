@@ -87,11 +87,11 @@ Init
         gyb_0 3e-4;			X-Covariance of initial gyroscope bias [rad^2/s^2]
         gyb_1 3e-4;			Y-Covariance of initial gyroscope bias [rad^2/s^2]
         gyb_2 3e-4;			Z-Covariance of initial gyroscope bias [rad^2/s^2]
-        vep 0.0001;			Covariance of initial linear camera-IMU extrinsics, same for all entries [m^2]
+        vep 0.0000001;			Covariance of initial linear camera-IMU extrinsics, same for all entries [m^2]
         att_0 0.1;			X-Covariance of initial attitude [rad^2]
         att_1 0.1;			Y-Covariance of initial attitude [rad^2]
         att_2 0.1;			Z-Covariance of initial attitude [rad^2]
-        vea 0.01;			Covariance of initial rotational camera-IMU extrinsics, same for all entries [rad^2]
+        vea 0.000001;			Covariance of initial rotational camera-IMU extrinsics, same for all entries [rad^2]
         ref_0 0.1          Covariance of initial refractive index
     }
 }
@@ -196,11 +196,11 @@ Prediction
         gyb_0 2.06e-10;							X-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         gyb_1 2.06e-10;							Y-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         gyb_2 2.06e-10;							Z-covariance parameter of gyroscope bias prediction [rad^2/s^3]
-        vep 1e-8;								Covariance parameter of linear extrinsics prediction [m^2/s]
+        vep 1e-9;								Covariance parameter of linear extrinsics prediction [m^2/s]
         att_0 1.09e-7;							X-Covariance parameter of attitude prediction [rad^2/s]
         att_1 1.09e-7;							Y-Covariance parameter of attitude prediction [rad^2/s]
         att_2 1.09e-7;							Z-Covariance parameter of attitude prediction [rad^2/s]
-        vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
+        vea 1e-9;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
         ref_0 0.000002;                         Try 0.00002 or 0.000002

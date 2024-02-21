@@ -71,7 +71,7 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
-        ref 1.00;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
+        ref 1.2;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
     }
     Covariance
     {
@@ -105,7 +105,7 @@ ImgUpdate
     showCandidates false;                                       Should the possible feature candidates be displayed
     visualizePatches false;										Should the patches be visualized
     useDirectMethod false;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
-    refractiveCalibration false;                                Online refractive index estimation to compensate for refractive distortion
+    refractiveCalibration true;                                Online refractive index estimation to compensate for refractive distortion
     startLevel 3;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
     nDetectionBuckets 100;										Number of discretization buckets used during the candidates selection
