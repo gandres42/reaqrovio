@@ -92,7 +92,7 @@ Init
         att_1 0.1;			Y-Covariance of initial attitude [rad^2]
         att_2 0.1;			Z-Covariance of initial attitude [rad^2]
         vea 0.01;			Covariance of initial rotational camera-IMU extrinsics, same for all entries [rad^2]
-        ref_0 0.1          Covariance of initial refractive index
+        ref_0 0.2          Covariance of initial refractive index
     }
 }
 ImgUpdate
@@ -203,7 +203,7 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
-        ref_0 0.000002;                         Try 0.00002 or 0.000002
+        ref_0 0.00002;                         Try 0.00002 or 0.000002
     }
     GravityVector
     {

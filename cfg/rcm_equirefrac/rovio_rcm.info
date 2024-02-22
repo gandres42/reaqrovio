@@ -71,7 +71,7 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
-        ref 1.36;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
+        ref 1.3325;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
     }
     Covariance
     {

@@ -46,6 +46,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
 #include <image_transport/image_transport.h>
 
@@ -148,6 +149,8 @@ class RovioNode{
   ros::Publisher pubPoseWithCovStamped_;
   ros::Publisher pub_T_J_W_transform;
   tf::TransformBroadcaster tb_;
+  tf::TransformListener tf_listener_;
+  
   ros::Publisher pubPcl_;            /**<Publisher: Ros point cloud, visualizing the landmarks.*/
   ros::Publisher pubPatch_;            /**<Publisher: Patch data.*/
   ros::Publisher pubMarkers_;          /**<Publisher: Ros line marker, indicating the depth uncertainty of a landmark.*/
@@ -209,6 +212,10 @@ class RovioNode{
   double clahe_clip_limit_ = 2.0;  //number of pixels used to clip the CDF for histogram equalization
   double clahe_grid_size_ = 8.0;   //clahe_grid_size_ x clahe_grid_size_ pixel neighborhood used
   const float max_8bit_image_val = 255.0;
+  Eigen::Matrix4d current_pose_ = Eigen::Matrix4d::Identity();
+  Eigen::Matrix4d previous_pose_ = Eigen::Matrix4d::Identity();
+  Eigen::Matrix4d relative_pose_ = Eigen::Matrix4d::Identity();
+  tf::StampedTransform last_imu_tf_;
 
 
   /** \brief Constructor
@@ -626,6 +633,7 @@ class RovioNode{
     cv::Mat cv_img;
     cv_ptr->image.copyTo(cv_img);
 
+
     if (mpImgUpdate_->histogramEqualize_) {
       //Check if input image is actually 8-bit
       double imgMin, imgMax;
@@ -927,6 +935,35 @@ class RovioNode{
           tb_.sendTransform(tf_transform_CM);
         }
 
+        tf::Transform tf_transform_CM0;
+        int camID = 0;
+        tf_transform_CM0.setOrigin(tf::Vector3(state.MrMC(camID)(0),state.MrMC(camID)(1),state.MrMC(camID)(2)));
+        tf_transform_CM0.setRotation(tf::Quaternion(state.qCM(camID).x(),state.qCM(camID).y(),state.qCM(camID).z(),-state.qCM(camID).w()));
+
+        // Get relative pose betwwen last and current camera frame
+
+        Eigen::Matrix4d camera_imu_tf = Eigen::Matrix4d::Identity();
+
+        Eigen::Quaterniond current_quat(imuOutput_.qBW().w(), imuOutput_.qBW().x(), imuOutput_.qBW().y(), imuOutput_.qBW().z());
+        
+        current_pose_.block<3,3>(0,0) = current_quat.toRotationMatrix();
+        current_pose_.block<3,1>(0,3) = imuOutput_.WrWB();
+
+        Eigen::Quaterniond camera_rot(tf_transform_CM0.getRotation().w(), tf_transform_CM0.getRotation().x(), tf_transform_CM0.getRotation().y(), tf_transform_CM0.getRotation().z());
+        camera_imu_tf.block<3,3>(0,0) = camera_rot.toRotationMatrix();
+        camera_imu_tf.block<3,1>(0,3) = Eigen::Vector3d(tf_transform_CM0.getOrigin().x(), tf_transform_CM0.getOrigin().y(), tf_transform_CM0.getOrigin().z());
+
+        Eigen::Matrix4d camera_current_tf = current_pose_*camera_imu_tf;
+        Eigen::Matrix4d camera_previous_tf = previous_pose_*camera_imu_tf;
+        Eigen::Matrix4d relative_pose_ = camera_previous_tf.inverse() * camera_current_tf;
+
+        mpImgUpdate_->relativeCameraMotion_ = relative_pose_;
+
+
+        // std::cout << "Relative Pose: " << std::endl << relative_pose_ << std::endl;
+
+        previous_pose_ = current_pose_;
+
         // Publish Odometry
         if(pubOdometry_.getNumSubscribers() > 0 || forceOdometryPublishing_){
           // Compute covariance of output
@@ -966,6 +1003,7 @@ class RovioNode{
             }
           }
           pubOdometry_.publish(odometryMsg_);
+
         }
 
         if(pubPoseWithCovStamped_.getNumSubscribers() > 0 || forcePoseWithCovariancePublishing_){

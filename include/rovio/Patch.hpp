@@ -217,6 +217,8 @@ class Patch {
             const float c_y = c.get_c().y+wdy - 0.5;
             const int u_r = floor(c_x);
             const int v_r = floor(c_y);
+            const float max_radius = 200.0;
+
             if(u_r < 0 || v_r < 0 || u_r >= img.cols-1 || v_r >= img.rows-1){
               return false;
             }

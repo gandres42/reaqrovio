@@ -263,6 +263,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
   mutable MultilevelPatchAlignment<mtState::nLevels_,mtState::patchSize_> alignment_; /**<Patch aligner*/
   mutable cv::Mat drawImg_; /**<Image currently used for drawing*/
+  mutable Eigen::Matrix4d relativeCameraMotion_; /**<Relative pose between current and previous frame*/
 
   /** \brief Constructor.
    *
@@ -618,7 +619,27 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       
       if (refractiveCalibration_){
         int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
-        F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+
+        Eigen::Vector3d motion = relativeCameraMotion_.block<3,1>(0,3);
+        Eigen::Vector3d motion_uvec =  motion.normalized();
+        // convert rotation matrix to axis angle
+        Eigen::AngleAxisd rotationMatrix(relativeCameraMotion_.block<3,3>(0,0));
+        Eigen::Vector3d motion_axis = rotationMatrix.axis();
+
+        std::cout << "Motion angle: " << rotationMatrix.angle() << std::endl;
+
+        // if ((abs(motion_axis(2)) > 0.94 && abs(rotationMatrix.angle()) > 0.004) || (motion_uvec(2) < 0.97 && motion.norm() > 0.005) ){
+        if ((abs(motion_axis(1)) > 0.85 && rotationMatrix.angle() > 0.01) || (motion_uvec(2) < 0.90 && motion.norm() > 0.005) ){
+          std::cout << "    Good Condition" << std::endl;
+          std::cout << " Motion norm: " << motion.norm() << std::endl;
+          F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+
+        }
+        else{
+          std::cout << "    Bad Condition" << std::endl;
+          std::cout << " Motion norm: " << motion.norm() << std::endl;
+          F.col(ref_ind) = -Jdpdn*0.0; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+        }
       }
 
     }
