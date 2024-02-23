@@ -104,7 +104,8 @@ ImgUpdate
     publishFrames true;
     showCandidates false;                                       Should the possible feature candidates be displayed
     visualizePatches false;										Should the patches be visualized
-    useDirectMethod false;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
+    useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
+    nObservThersh    0.0;
     refractiveCalibration false;                                Online refractive index estimation to compensate for refractive distortion
     startLevel 3;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
