@@ -678,28 +678,23 @@ class RovioNode{
 
     
     // // // // To dim the images 
-    // if(init_state_.isInitialized() && !cv_img.empty()){
+    if(init_state_.isInitialized() && !cv_img.empty()){
 
-    //   //>>> Gamma correction
-    //   cv::Mat cv_img_hsv = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   cv::Mat img_cp = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   cv::Mat ones_ = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   double alpha = 0.5; /*< Simple contrast control */
-    //   int beta = 0;       /*< Simple brightness control */
+      //>>> Gamma correction
 
-    //   std::cout<<cv_img.size()<<std::endl;
-  
-    //   cv_img.copyTo(img_cp);
+      cv::Mat lookUpTable(1, 256, CV_8U);
+      double gamma = 1.25;
+      for (int i = 0; i < 256; i++)
+      {
+          lookUpTable.at<uchar>(i) = cv::saturate_cast<uchar>(pow(i / 255.0, gamma) * 255.0);
+      }
+      cv::Mat res = cv_img.clone();
+      LUT(cv_img, lookUpTable, res);
+      cv_img = res;
+    }
 
-    //   for (int y = 0; y < cv_img_hsv.rows; y++) {
-    //       for (int x = 0; x < cv_img_hsv.cols; x++) {
-    //               cv_img_hsv.at<cv::Vec3b>(y, x)[0] = ones_.at<cv::Vec3b>(y, x)[0] ;
-      
-    //       }
-    //   }
-    // //   // cv_img = cv_img_hsv;
-    // }
-    // //   //<<<
+
+
 
     if(init_state_.isInitialized() && !cv_img.empty()){
       double msgTime = img->header.stamp.toSec();
