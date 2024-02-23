@@ -217,7 +217,15 @@ class Patch {
             const float c_y = c.get_c().y+wdy - 0.5;
             const int u_r = floor(c_x);
             const int v_r = floor(c_y);
-            const float max_radius = 200.0;
+            const float max_radius = 405.0;
+            const double radius = sqrt((c_x-img.cols/2)*(c_x-img.cols/2)+(c_y-img.rows/2)*(c_y-img.rows/2));
+            // std::cout << "radius in pixel check: " << radius << std::endl;
+            // std::cout << "img.cols/2: " << img.cols/2 << std::endl;
+            double level = 720.0/img.cols;
+
+            if(radius*level > max_radius){
+              return false;
+            }
 
             if(u_r < 0 || v_r < 0 || u_r >= img.cols-1 || v_r >= img.rows-1){
               return false;
