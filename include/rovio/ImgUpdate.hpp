@@ -225,6 +225,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double noiseGainForOffCamera_; /**<Factor added on update noise if not main camera*/
   double alignConvergencePixelRange_;
   double alignCoverageRatio_;
+  double nObservThersh_;               /**<Threshold for the observability check for refractive index*/
   int alignMaxUniSample_;
   bool useCrossCameraMeasurements_; /**<Should features be matched across cameras.*/
   bool doStereoInitialization_; /**<Should a stereo match be used for feature initialization.*/
@@ -314,6 +315,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     noiseGainForOffCamera_ = 4.0;
     alignConvergencePixelRange_ = 1.0;
     alignCoverageRatio_ = 2.0;
+    nObservThersh_ = 0.2;
     alignMaxUniSample_ = 5;
     useCrossCameraMeasurements_ = true;
     doStereoInitialization_ = true;
@@ -341,6 +343,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     doubleRegister_.registerScalar("maxUncertaintyToDepthRatioForDepthInitialization",maxUncertaintyToDepthRatioForDepthInitialization_);
     doubleRegister_.registerScalar("alignConvergencePixelRange",alignConvergencePixelRange_);
     doubleRegister_.registerScalar("alignCoverageRatio",alignCoverageRatio_);
+    doubleRegister_.registerScalar("nObservThersh",nObservThersh_);
     doubleRegister_.registerScalar("removalFactor",removalFactor_);
     doubleRegister_.registerScalar("discriminativeSamplingDistance",discriminativeSamplingDistance_);
     doubleRegister_.registerScalar("discriminativeSamplingGain",discriminativeSamplingGain_);
@@ -619,27 +622,47 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       
       if (refractiveCalibration_){
         int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
+        // std::cout << "relativeCameraMotion_ is " << relativeCameraMotion_ << std::endl;
 
-        Eigen::Vector3d motion = relativeCameraMotion_.block<3,1>(0,3);
-        Eigen::Vector3d motion_uvec =  motion.normalized();
-        // convert rotation matrix to axis angle
-        Eigen::AngleAxisd rotationMatrix(relativeCameraMotion_.block<3,3>(0,0));
-        Eigen::Vector3d motion_axis = rotationMatrix.axis();
+        // Observability analysis: may have bugs, need to fix, does not affect the code rn
+        
+        Eigen::Vector3d translation = relativeCameraMotion_.block<3,1>(0,3);
+        Eigen::Matrix3d rotation = relativeCameraMotion_.block<3,3>(0,0);
+        Eigen::Matrix3d skew;
 
-        std::cout << "Motion angle: " << rotationMatrix.angle() << std::endl;
+        skew << 0, -translation(2), translation(1),
+                translation(2), 0, -translation(0),
+                -translation(1), translation(0), 0;
 
-        // if ((abs(motion_axis(2)) > 0.94 && abs(rotationMatrix.angle()) > 0.004) || (motion_uvec(2) < 0.97 && motion.norm() > 0.005) ){
-        if ((abs(motion_axis(1)) > 0.85 && rotationMatrix.angle() > 0.01) || (motion_uvec(2) < 0.90 && motion.norm() > 0.005) ){
-          std::cout << "    Good Condition" << std::endl;
-          std::cout << " Motion norm: " << motion.norm() << std::endl;
-          F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+        Eigen::Matrix3d EssentianlMatrix = skew*rotation;
 
+        Eigen::Vector3d point = featureOutput_.c().get_nor().getVec() / featureOutput_.c().get_nor().getVec()(2);
+
+        Eigen::Vector3d epipolarLine = EssentianlMatrix.transpose() * point;
+        
+        Eigen::Vector2d epipolar_line_uvec;
+        epipolar_line_uvec(0) = epipolarLine(1);
+        epipolar_line_uvec(1) = -epipolarLine(0);
+        epipolar_line_uvec = epipolar_line_uvec.normalized();
+
+        Eigen::Vector2d tangent_vec;
+        tangent_vec(0) = -point(1);
+        tangent_vec(1) = point(0);
+        tangent_vec = tangent_vec.normalized();
+
+        double cos_theta = epipolar_line_uvec.transpose()*tangent_vec;
+        double theta = acos(cos_theta);
+        double radius = point.head <2>().norm();
+
+
+        double metric = abs(sin(2*theta));
+
+        F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+
+        if (Jdpdn.norm() > 600.0){
+          featureOutput_.c().drawText(drawImg_, "High Grad" , cv::Scalar(10, 10, 255));
         }
-        else{
-          std::cout << "    Bad Condition" << std::endl;
-          std::cout << " Motion norm: " << motion.norm() << std::endl;
-          F.col(ref_ind) = -Jdpdn*0.0; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
-        }
+
       }
 
     }
