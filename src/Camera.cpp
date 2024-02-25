@@ -658,24 +658,6 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     return true;
   }
 
-  bool Camera::pixelToBearingAnalytical(const cv::Point2f& c,Eigen::Vector3d& vec, const double& refrac_index) const{
-    Eigen::Vector2d y;
-    y(0) = (static_cast<double>(c.x) - K_(0, 2)) / K_(0, 0);
-    y(1) = (static_cast<double>(c.y) - K_(1, 2)) / K_(1, 1);
-
-    const double x2 = y(0) * y(0);
-    const double y2 = y(1) * y(1);
-    const double r2 = x2 + y2;
-    const double n = refrac_index; // refractive index from state
-    const double n2 = n * n;
-    const double m_undistort = sqrt((n2*r2) + n2 - r2);
-    y = y / m_undistort;
-
-    vec = Eigen::Vector3d(y(0),y(1),1.0).normalized();
-    // std::cout << "in pixelToBearingAnalytical with ref from state" << std::endl;
-
-    return true;
-  }
 
   bool Camera::pixelToBearing(const cv::Point2f& c,LWF::NormalVectorElement& n) const{
     Eigen::Vector3d vec;
@@ -691,19 +673,7 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     return success;
   }
 
-  bool Camera::pixelToBearing(const cv::Point2f& c, LWF::NormalVectorElement& n, const double& refrac_index) const{
-    Eigen::Vector3d vec;
-    bool success;
-    if (type_==REFRAC){
-      success = pixelToBearingAnalytical(c,vec, refrac_index);
-    }
-    else{
-      success = pixelToBearing(c,vec);
-    }
 
-    n.setFromVector(vec);
-    return success;
-  }
 
   void Camera::testCameraModel(){
     double d = 1e-4;
