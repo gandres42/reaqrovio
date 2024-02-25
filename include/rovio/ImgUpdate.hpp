@@ -236,7 +236,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double alignmentGradientExponent_; /**<Exponent used for gradient based weighting of residuals.*/
   double discriminativeSamplingDistance_; /**<Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).*/
   double discriminativeSamplingGain_; /**<Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).*/
-
+  double maxAllowedFeatureDistance_;
 
   // Temporary
   mutable PixelOutputCT pixelOutputCT_;
@@ -325,6 +325,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     alignmentGaussianWeightingSigma_ = 2.0;
     discriminativeSamplingDistance_ = 0.0;
     discriminativeSamplingGain_ = 0.0;
+    maxAllowedFeatureDistance_ = 10.0;
     doubleRegister_.registerDiagonalMatrix("initCovFeature",initCovFeature_);
     doubleRegister_.registerScalar("initDepth",initDepth_);
     doubleRegister_.registerScalar("startDetectionTh",startDetectionTh_);
@@ -386,6 +387,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     doubleRegister_.registerScalar("alignmentGaussianWeightingSigma",alignmentGaussianWeightingSigma_);
     alignmentGradientExponent_ = static_cast<double>(alignment_.gradientExponent_);
     doubleRegister_.registerScalar("alignmentGradientExponent",alignmentGradientExponent_);
+    doubleRegister_.registerScalar("maxAllowedFeatureDistance",maxAllowedFeatureDistance_);
   };
 
   /** \brief Destructor
@@ -654,13 +656,15 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         double theta = acos(cos_theta);
         double radius = point.head <2>().norm();
 
-
         double metric = abs(sin(2*theta));
 
         F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
 
-        if (Jdpdn.norm() > 600.0){
-          featureOutput_.c().drawText(drawImg_, "High Grad" , cv::Scalar(10, 10, 255));
+        if (metric > nObservThersh_){
+          featureOutput_.c().drawText(drawImg_, "____High Obs" , cv::Scalar(255, 10, 0));
+        }
+        else{
+          featureOutput_.c().drawText(drawImg_, "____Low Obs" , cv::Scalar(10, 10, 255));
         }
 
       }
@@ -905,7 +909,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       if(removeNegativeFeatureAfterUpdate_){
         for(unsigned int i=0;i<mtState::nMax_;i++){
           if(filterState.fsm_.isValid_[i]){
-            if(filterState.state_.dep(i).getDistance() < 1e-8){
+            if(filterState.state_.dep(i).getDistance() < 1e-8 ||
+               filterState.state_.dep(i).getDistance() > maxAllowedFeatureDistance_){
               if(verbose_) std::cout << "    \033[33mRemoved feature " << filterState.fsm_.features_[i].idx_ << " with invalid distance parameter " << filterState.state_.dep(i).p_ << "!\033[0m" << std::endl;
               filterState.fsm_.isValid_[i] = false;
               filterState.resetFeatureCovariance(i,Eigen::Matrix3d::Identity());
