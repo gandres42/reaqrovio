@@ -204,6 +204,8 @@ class RovioNode{
   std::string camera_frame_;
   std::string imu_frame_;
 
+  double imu_offset_= 0.0;
+
   // CUSTOMIZATION
   bool resize_input_image_ = false;
   double resize_factor_ = 1.0; 
@@ -211,6 +213,7 @@ class RovioNode{
   cv::Ptr<cv::CLAHE> clahe;
   double clahe_clip_limit_ = 2.0;  //number of pixels used to clip the CDF for histogram equalization
   double clahe_grid_size_ = 8.0;   //clahe_grid_size_ x clahe_grid_size_ pixel neighborhood used
+  double img_gamma = 1.0;
   const float max_8bit_image_val = 255.0;
   Eigen::Matrix4d current_pose_ = Eigen::Matrix4d::Identity();
   Eigen::Matrix4d previous_pose_ = Eigen::Matrix4d::Identity();
@@ -291,6 +294,8 @@ class RovioNode{
     nh_private_.param("camera_frame", camera_frame_, camera_frame_);
     nh_private_.param("imu_frame", imu_frame_, imu_frame_);
 
+    nh_private_.param("imu_offset", imu_offset_, -0.00177);
+
       //CLAHE
     nh_private_.param("histogram_equalize_8bit_images", histogram_equalize_8bit_images_, true);
     if (histogram_equalize_8bit_images_)
@@ -302,6 +307,7 @@ class RovioNode{
       clahe->setClipLimit(clahe_clip_limit_);
       clahe->setTilesGridSize(cv::Size(clahe_grid_size_, clahe_grid_size_));
     }
+    nh_private_.param("img_gamma", img_gamma, 1.0);
     nh_private_.param("resize_input_image", resize_input_image_, false);
     nh_private_.param("resize_factor", resize_factor_, 0.5);
     //Image resize
@@ -539,18 +545,18 @@ class RovioNode{
     predictionMeas_.template get<mtPredictionMeas::_acc>() = Eigen::Vector3d(imu_msg->linear_acceleration.x,imu_msg->linear_acceleration.y,imu_msg->linear_acceleration.z);
     predictionMeas_.template get<mtPredictionMeas::_gyr>() = Eigen::Vector3d(imu_msg->angular_velocity.x,imu_msg->angular_velocity.y,imu_msg->angular_velocity.z);
     if(init_state_.isInitialized()){
-      mpFilter_->addPredictionMeas(predictionMeas_,imu_msg->header.stamp.toSec());
+      mpFilter_->addPredictionMeas(predictionMeas_,imu_msg->header.stamp.toSec() + imu_offset_);
       updateAndPublish();
     } else {
       switch(init_state_.state_) {
         case FilterInitializationState::State::WaitForInitExternalPose: {
           std::cout << "-- Filter: Initializing using external pose ..." << std::endl;
-          mpFilter_->resetWithPose(init_state_.WrWM_, init_state_.qMW_, imu_msg->header.stamp.toSec());
+          mpFilter_->resetWithPose(init_state_.WrWM_, init_state_.qMW_, imu_msg->header.stamp.toSec()+imu_offset_);
           break;
         }
         case FilterInitializationState::State::WaitForInitUsingAccel: {
           std::cout << "-- Filter: Initializing using accel. measurement ..." << std::endl;
-          mpFilter_->resetWithAccelerometer(predictionMeas_.template get<mtPredictionMeas::_acc>(),imu_msg->header.stamp.toSec());
+          mpFilter_->resetWithAccelerometer(predictionMeas_.template get<mtPredictionMeas::_acc>(),imu_msg->header.stamp.toSec()+imu_offset_);
           break;
         }
         default: {
@@ -561,7 +567,7 @@ class RovioNode{
       }
 
       std::cout << std::setprecision(12);
-      std::cout << "-- Filter: Initialized at t = " << imu_msg->header.stamp.toSec() << std::endl;
+      std::cout << "-- Filter: Initialized at t = " << imu_msg->header.stamp.toSec() + imu_offset_ << std::endl;
       init_state_.state_ = FilterInitializationState::State::Initialized;
     }
   }
@@ -680,13 +686,12 @@ class RovioNode{
     // // // // To dim the images 
     if(init_state_.isInitialized() && !cv_img.empty()){
 
-      //>>> Gamma correction
+    //   //>>> Gamma correction
 
       cv::Mat lookUpTable(1, 256, CV_8U);
-      double gamma = 1.25;
       for (int i = 0; i < 256; i++)
       {
-          lookUpTable.at<uchar>(i) = cv::saturate_cast<uchar>(pow(i / 255.0, gamma) * 255.0);
+          lookUpTable.at<uchar>(i) = cv::saturate_cast<uchar>(pow(i / 255.0, img_gamma) * 255.0);
       }
       cv::Mat res = cv_img.clone();
       LUT(cv_img, lookUpTable, res);
