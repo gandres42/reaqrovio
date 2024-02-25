@@ -50,7 +50,7 @@ class ImuPrediction: public LWF::Prediction<FILTERSTATE>{
   typedef typename Base::mtFilterState mtFilterState;
   typedef typename Base::mtMeas mtMeas;
   typedef typename Base::mtNoise mtNoise;
-  const V3D g_; /**<Gravity in inertial frame, always aligned with the z-axis.*/
+  V3D g_; /**<Gravity in inertial frame, always aligned with the z-axis.*/
   double inertialMotionRorTh_; /**<Threshold on the rotational rate for motion detection.*/
   double inertialMotionAccTh_; /**<Threshold on the acceleration for motion detection.*/
   mutable FeatureCoordinates oldC_;
@@ -60,6 +60,7 @@ class ImuPrediction: public LWF::Prediction<FILTERSTATE>{
     int ind;
     inertialMotionRorTh_ = 0.1;
     inertialMotionAccTh_ = 0.1;
+    doubleRegister_.registerVector("GravityVector.g", g_);
     doubleRegister_.registerScalar("MotionDetection.inertialMotionRorTh",inertialMotionRorTh_);
     doubleRegister_.registerScalar("MotionDetection.inertialMotionAccTh",inertialMotionAccTh_);
     for(int i=0;i<mtState::nMax_;i++){
@@ -175,7 +176,6 @@ class ImuPrediction: public LWF::Prediction<FILTERSTATE>{
     F.template block<3,3>(mtState::template getId<mtState::_att>(),mtState::template getId<mtState::_gyb>()) = -dt*MPD(state.qWM()).matrix()*Lmat(dOmega);
     F.template block<3,3>(mtState::template getId<mtState::_att>(),mtState::template getId<mtState::_att>()) = M3D::Identity();
     F.template block<1,1>(mtState::template getId<mtState::_ref>(),mtState::template getId<mtState::_ref>()) = M1D::Identity();
-    
     LWF::NormalVectorElement nOut;
     QPD qm;
     for(unsigned int i=0;i<mtState::nMax_;i++){
