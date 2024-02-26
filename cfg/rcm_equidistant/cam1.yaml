@@ -8,7 +8,7 @@ camera_matrix:
           0.0,  459.5995328101312, 261.44386330729395,   
           0.0, 0.0, 1.0]
 
-distortion_model: equidistant
+distortion_model: equirefractive
 distortion_coefficients:
   rows: 1
   cols: 5
