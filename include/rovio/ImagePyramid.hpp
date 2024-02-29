@@ -139,11 +139,25 @@ class ImagePyramid{
   void detectFastCorners(FeatureCoordinatesVec & candidates, int l, int detectionThreshold, double valid_radius = std::numeric_limits<double>::max()) const{
     std::vector<cv::KeyPoint> keypoints;
 #if (CV_MAJOR_VERSION < 3)
+
     cv::FastFeatureDetector feature_detector_fast(detectionThreshold, true);
     feature_detector_fast.detect(imgs_[l], keypoints);
+     
+    }
 #else
     auto feature_detector_fast = cv::FastFeatureDetector::create(detectionThreshold, true);
     feature_detector_fast->detect(imgs_[l], keypoints);
+    
+
+    if (keypoints.size() == 0) {
+      std::cout << "No keypoints detected, lowering fast threshold" << std::endl;
+      feature_detector_fast = cv::FastFeatureDetector::create(15, true);
+      feature_detector_fast->detect(imgs_[l], keypoints);
+      std::cout << "keypoints.size(): " << keypoints.size() << std::endl;
+    }
+
+
+
 #endif
 
     candidates.reserve(candidates.size()+keypoints.size());
