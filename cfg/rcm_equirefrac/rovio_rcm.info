@@ -71,7 +71,7 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
-        ref 1.33;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
+        ref 1.31;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
     }
     Covariance
     {
@@ -92,7 +92,7 @@ Init
         att_1 0.1;			Y-Covariance of initial attitude [rad^2]
         att_2 0.1;			Z-Covariance of initial attitude [rad^2]
         vea 0.01;			Covariance of initial rotational camera-IMU extrinsics, same for all entries [rad^2]
-        ref_0 0.01          Covariance of initial refractive index
+        ref_0 0.0001          Covariance of initial refractive index
     }
 }
 ImgUpdate
@@ -134,7 +134,7 @@ ImgUpdate
     minRelativeSTScore 0.75;									Minimum relative ST-score for extracting new feature patch
     minAbsoluteSTScore 5.0;										Minimum absolute ST-score for extracting new feature patch
     minTimeBetweenPatchUpdate 1.0;								Minimum time between new multilevel patch extrection [s]
-    fastDetectionThreshold 2;									Fast corner detector treshold while adding new feature
+    fastDetectionThreshold 25;									Fast corner detector treshold while adding new feature
     alignConvergencePixelRange 10;								Assumed convergence range for image alignment (gets scaled with the level) [pixels]
     alignCoverageRatio 2;										How many sigma of the uncertainty should be covered in the adaptive alignement
     alignMaxUniSample 1;										Maximal number of alignment seeds on one side -> total number of sample = 2n+1. Carefull can get very costly if diverging!
@@ -204,7 +204,7 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
-        ref_0 0.0000012;                         Try 0.00002 or 0.000002
+        ref_0 1e-7;                         Try 0.00002 or 0.000002
     }
     GravityVector
     {
