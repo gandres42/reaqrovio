@@ -226,6 +226,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double alignConvergencePixelRange_;
   double alignCoverageRatio_;
   double nObservThersh_;               /**<Threshold for the observability check for refractive index*/
+  double lineThresh_;                  /**<Threshold for the classifying line features*/
   int alignMaxUniSample_;
   bool useCrossCameraMeasurements_; /**<Should features be matched across cameras.*/
   bool doStereoInitialization_; /**<Should a stereo match be used for feature initialization.*/
@@ -237,6 +238,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double discriminativeSamplingDistance_; /**<Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).*/
   double discriminativeSamplingGain_; /**<Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).*/
   double maxAllowedFeatureDistance_;
+  double minAllowedFeatureDistance_;
 
   // Temporary
   mutable PixelOutputCT pixelOutputCT_;
@@ -316,6 +318,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     alignConvergencePixelRange_ = 1.0;
     alignCoverageRatio_ = 2.0;
     nObservThersh_ = 0.2;
+    lineThresh_ = 2.0;
     alignMaxUniSample_ = 5;
     useCrossCameraMeasurements_ = true;
     doStereoInitialization_ = true;
@@ -326,6 +329,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     discriminativeSamplingDistance_ = 0.0;
     discriminativeSamplingGain_ = 0.0;
     maxAllowedFeatureDistance_ = 10.0;
+    minAllowedFeatureDistance_ = 0.0;
     doubleRegister_.registerDiagonalMatrix("initCovFeature",initCovFeature_);
     doubleRegister_.registerScalar("initDepth",initDepth_);
     doubleRegister_.registerScalar("startDetectionTh",startDetectionTh_);
@@ -345,6 +349,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     doubleRegister_.registerScalar("alignConvergencePixelRange",alignConvergencePixelRange_);
     doubleRegister_.registerScalar("alignCoverageRatio",alignCoverageRatio_);
     doubleRegister_.registerScalar("nObservThersh",nObservThersh_);
+    doubleRegister_.registerScalar("lineThresh",lineThresh_);
     doubleRegister_.registerScalar("removalFactor",removalFactor_);
     doubleRegister_.registerScalar("discriminativeSamplingDistance",discriminativeSamplingDistance_);
     doubleRegister_.registerScalar("discriminativeSamplingGain",discriminativeSamplingGain_);
@@ -388,6 +393,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     alignmentGradientExponent_ = static_cast<double>(alignment_.gradientExponent_);
     doubleRegister_.registerScalar("alignmentGradientExponent",alignmentGradientExponent_);
     doubleRegister_.registerScalar("maxAllowedFeatureDistance",maxAllowedFeatureDistance_);
+    doubleRegister_.registerScalar("minAllowedFeatureDistance",minAllowedFeatureDistance_);
   };
 
   /** \brief Destructor
@@ -602,10 +608,93 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_, Jdpdn, state.ref()); /* c_J_ is the jacobian defined in Camera.cpp*/ 
         F = -A_red_*c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
 
+
+        /**
+         * @brief Code for checking the observability of the refractive index and epipolar line
+         * 
+         */
+
+        Eigen::Vector3d translation = relativeCameraMotion_.block<3,1>(0,3);
+        Eigen::Matrix3d rotation = relativeCameraMotion_.block<3,3>(0,0);
+        Eigen::Matrix3d skew;
+
+        skew << 0, -translation(2), translation(1),
+                translation(2), 0, -translation(0),
+                -translation(1), translation(0), 0;
+
+        Eigen::Matrix3d EssentianlMatrix = skew*rotation;
+
+        Eigen::Vector3d point = featureOutput_.c().get_nor().getVec() / featureOutput_.c().get_nor().getVec()(2);
+
+        Eigen::Vector3d epipolarLine = EssentianlMatrix.transpose() * point;
+        
+        Eigen::Vector2d epipolar_line_uvec;
+        epipolar_line_uvec(0) = epipolarLine(1);
+        epipolar_line_uvec(1) = -epipolarLine(0);
+        epipolar_line_uvec = epipolar_line_uvec.normalized();
+
+        // Plotting the epipolar line
+        cv::Point2f epipolar_line_end;
+        epipolar_line_end.x = featureOutput_.c().get_c().x + 50*epipolar_line_uvec(0);
+        epipolar_line_end.y = featureOutput_.c().get_c().y + 50*epipolar_line_uvec(1);
+        cv::line(drawImg_, featureOutput_.c().get_c(), epipolar_line_end, cv::Scalar(255, 10, 0), 1, 8, 0);
+
+        Eigen::Vector2d tangent_vec;
+        tangent_vec(0) = -point(1);
+        tangent_vec(1) = point(0);
+        tangent_vec = tangent_vec.normalized();
+
+        cv::Point2f tangent_line_end;
+        tangent_line_end.x = featureOutput_.c().get_c().x + 50*tangent_vec(0);
+        tangent_line_end.y = featureOutput_.c().get_c().y + 50*tangent_vec(1);
+        cv::line(drawImg_, featureOutput_.c().get_c(), tangent_line_end, cv::Scalar(0, 255, 0), 1, 8, 0);
+
+
+        double cos_theta = epipolar_line_uvec.transpose()*tangent_vec;
+        double theta = acos(cos_theta);
+        double radius = point.head <2>().norm();
+
+        double metric = abs(sin(2*theta))*radius;
+               
+        MXD F_temp(2, 2);
+        F_temp = A_red_;
+        F_temp = F_temp.transpose() * F_temp * 1.0 / updateNoiseInt_;
+        featureOutput_.c().setPixelCov(F_temp);
+
+        // Color of text changing linearly based on the metric
+        auto color = cv::Scalar(255*metric,0, 255*(1-metric));
+
+        featureOutput_.c().drawText(drawImg_, "___Obs" , color);
+        
+        bool line_cond = (featureOutput_.c().sigma1_/featureOutput_.c().sigma2_) > lineThresh_;
+
+        // to compute the jacobian for the refractive index
         if (refractiveCalibration_){
           int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
-          F.col(ref_ind) = -A_red_*Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+          F.col(ref_ind) = -A_red_*Jdpdn*metric; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+
+          // to reject points with high sigma
+          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond){
+            F.col(ref_ind) = F.col(ref_ind)*0.0;
+            featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
+          }
+
         }
+
+        
+        // to reject points update from a point if parallel to the epipolar line
+        if (line_cond){
+          featureOutput_.c().drawText(drawImg_, "_____Line" , cv::Scalar(255, 10, 0));
+
+          // find angle between eigen vector and epipolar line
+          double cos_angle = featureOutput_.c().eigenVector2_.transpose()*epipolar_line_uvec;
+          if (abs(cos_angle) > 0.7){
+            F = F*0.0;
+            featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 10, 255));
+          }
+        }
+
+
 
       } else {
         F.setZero();
@@ -909,7 +998,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       if(removeNegativeFeatureAfterUpdate_){
         for(unsigned int i=0;i<mtState::nMax_;i++){
           if(filterState.fsm_.isValid_[i]){
-            if(filterState.state_.dep(i).getDistance() < 1e-8 ||
+            if(filterState.state_.dep(i).getDistance() < minAllowedFeatureDistance_ ||
                filterState.state_.dep(i).getDistance() > maxAllowedFeatureDistance_){
               if(verbose_) std::cout << "    \033[33mRemoved feature " << filterState.fsm_.features_[i].idx_ << " with invalid distance parameter " << filterState.state_.dep(i).p_ << "!\033[0m" << std::endl;
               filterState.fsm_.isValid_[i] = false;
