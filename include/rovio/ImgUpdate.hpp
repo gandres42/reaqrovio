@@ -657,10 +657,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         tangent_vec(1) = point(0);
         tangent_vec = tangent_vec.normalized();
 
-        cv::Point2f tangent_line_end;
-        tangent_line_end.x = featureOutput_.c().get_c().x + 50*tangent_vec(0);
-        tangent_line_end.y = featureOutput_.c().get_c().y + 50*tangent_vec(1);
-        cv::line(drawImg_, featureOutput_.c().get_c(), tangent_line_end, cv::Scalar(0, 255, 0), 1, 8, 0);
+        cv::Point2f radial_line_end;
+        radial_line_end.x = featureOutput_.c().get_c().x - 50*tangent_vec(1);
+        radial_line_end.y = featureOutput_.c().get_c().y + 50*tangent_vec(0);
+        cv::line(drawImg_, featureOutput_.c().get_c(), radial_line_end, cv::Scalar(0, 255, 0), 1, 8, 0);
 
 
         double cos_theta = epipolar_line_uvec.transpose()*tangent_vec;
@@ -668,7 +668,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         double radius = point.head <2>().norm();
 
         double metric = abs(sin(2*theta));
-        metric = pow(metric, 0.4)*radius;
+        metric = pow(metric, 0.4)*pow(radius, 0.5);
                
         MXD F_temp(2, 2);
         F_temp = A_red_;
@@ -698,7 +698,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         
         // to reject points update from a point if parallel to the epipolar line
         if (line_cond){
-          featureOutput_.c().drawText(drawImg_, "_____Line" , cv::Scalar(255, 10, 0));
 
           // find angle between eigen vector and epipolar line
           double cos_angle = featureOutput_.c().eigenVector2_.transpose()*epipolar_line_uvec;
