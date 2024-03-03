@@ -639,7 +639,6 @@ class RovioNode{
     cv::Mat cv_img;
     cv_ptr->image.copyTo(cv_img);
 
-
     if (mpImgUpdate_->histogramEqualize_) {
       //Check if input image is actually 8-bit
       double imgMin, imgMax;
@@ -649,6 +648,21 @@ class RovioNode{
         cv_img.convertTo(inImg, CV_8UC1);
         clahe->apply(inImg, outImg);
         outImg.convertTo(cv_img, CV_8UC1); 
+
+        // apply bilateral filter
+        if (mpImgUpdate_->bilateralBlur_){
+            cv_img.convertTo(inImg, CV_8UC1);
+            cv::bilateralFilter(inImg, outImg, 9, 50, 50);
+            outImg.convertTo(cv_img, CV_8UC1); 
+        }        
+        // median blur
+        if (mpImgUpdate_->medianBlur_){
+            cv_img.convertTo(inImg, CV_8UC1);
+            cv::medianBlur( inImg, outImg, mpImgUpdate_->medianKernelSize_);
+            outImg.convertTo(cv_img, CV_8UC1); 
+
+        }
+        
       } else
         ROS_WARN_THROTTLE(5, "Histogram Equaliztion for 8-bit intensity images is turned on but input Image is not 8-bit");
     }
@@ -1053,7 +1067,7 @@ class RovioNode{
           refractiveIndexMsg_.header.seq = msgSeq_;
           refractiveIndexMsg_.header.stamp = ros::Time(mpFilter_->safe_.t_);
           refractiveIndexMsg_.point.x = imuOutput_.ref();
-          refractiveIndexMsg_.point.z = 1.333;
+          refractiveIndexMsg_.point.z = 1.33;
           pubRefractiveIndex_.publish(refractiveIndexMsg_);
         }
 

@@ -71,7 +71,7 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
-        ref 1.34;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
+        ref 1.30;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
     }
     Covariance
     {
@@ -106,11 +106,11 @@ ImgUpdate
     visualizePatches true;										Should the patches be visualized
     useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
     refractiveCalibration true;                                Online refractive index estimation to compensate for refractive distortion
-    nObservThersh    7.0;
-    lineThresh 3.0;
-    startLevel 2;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
-    endLevel 0;													Lowest patch level which is being employed
-    nDetectionBuckets 100;										Number of discretization buckets used during the candidates selection
+    nObservThersh  10.0;
+    lineThresh 4.0;
+    startLevel 1;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
+    endLevel 1;													Lowest patch level which is being employed
+    nDetectionBuckets 200;										Number of discretization buckets used during the candidates selection
     MahalanobisTh 9.21;											Mahalanobis treshold for the update, 5.8858356
     UpdateNoise
     {
@@ -182,6 +182,9 @@ ImgUpdate
 
     addGlobalBest true;                                         Should the best features of all cameras be added (true) or the best of each camera (false)
     histogramEqualize true;
+    medianBlur false;
+    bilateralBlur false;
+    medianKernelSize 3;
 }
 Prediction
 {
@@ -193,9 +196,9 @@ Prediction
         vel_0 1e-7;								X-covariance parameter of velocity prediction [m^2/s^3]
         vel_1 1e-7;								Y-covariance parameter of velocity prediction [m^2/s^3]
         vel_2 1e-7;								Z-covariance parameter of velocity prediction [m^2/s^3]
-        acb_0 2.84e-6;								X-covariance parameter of accelerometer bias prediction [m^2/s^5]
-        acb_1 2.84e-6;								Y-covariance parameter of accelerometer bias prediction [m^2/s^5]
-        acb_2 2.84e-6;								Z-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_0 1.84e-6;								X-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_1 1.84e-6;								Y-covariance parameter of accelerometer bias prediction [m^2/s^5]
+        acb_2 1.84e-6;								Z-covariance parameter of accelerometer bias prediction [m^2/s^5]
         gyb_0 2.06e-10;							X-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         gyb_1 2.06e-10;							Y-covariance parameter of gyroscope bias prediction [rad^2/s^3]
         gyb_2 2.06e-10;							Z-covariance parameter of gyroscope bias prediction [rad^2/s^3]
@@ -206,7 +209,7 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
-        ref_0 8e-7;                         Try 0.00002 or 0.000002
+        ref_0 9.0e-7;                         Try 0.00002 or 0.000002
     }
     GravityVector
     {

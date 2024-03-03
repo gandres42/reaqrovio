@@ -232,6 +232,9 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   bool doStereoInitialization_; /**<Should a stereo match be used for feature initialization.*/
   bool addGlobalBest_;
   bool histogramEqualize_;
+  bool bilateralBlur_;
+  bool medianBlur_;
+
   double alignmentHuberNormThreshold_; /**<Intensity error threshold for Huber norm.*/
   double alignmentGaussianWeightingSigma_; /**<Width of Gaussian which is used for pixel error weighting.*/
   double alignmentGradientExponent_; /**<Exponent used for gradient based weighting of residuals.*/
@@ -239,6 +242,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double discriminativeSamplingGain_; /**<Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).*/
   double maxAllowedFeatureDistance_;
   double minAllowedFeatureDistance_;
+  int medianKernelSize_;
 
   // Temporary
   mutable PixelOutputCT pixelOutputCT_;
@@ -324,12 +328,16 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     doStereoInitialization_ = true;
     addGlobalBest_ = false;
     histogramEqualize_ = false;
+    medianBlur_ = false;
+    bilateralBlur_ = false;
+
     removalFactor_ = 1.1;
     alignmentGaussianWeightingSigma_ = 2.0;
     discriminativeSamplingDistance_ = 0.0;
     discriminativeSamplingGain_ = 0.0;
     maxAllowedFeatureDistance_ = 10.0;
     minAllowedFeatureDistance_ = 0.0;
+    medianKernelSize_ = 5;
     doubleRegister_.registerDiagonalMatrix("initCovFeature",initCovFeature_);
     doubleRegister_.registerScalar("initDepth",initDepth_);
     doubleRegister_.registerScalar("startDetectionTh",startDetectionTh_);
@@ -372,6 +380,9 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     boolRegister_.registerScalar("addGlobalBest",addGlobalBest_);
     boolRegister_.registerScalar("histogramEqualize",histogramEqualize_);
     boolRegister_.registerScalar("useIntensityOffsetForAlignment",alignment_.useIntensityOffset_);
+    boolRegister_.registerScalar("bilateralBlur",bilateralBlur_);
+    boolRegister_.registerScalar("medianBlur",medianBlur_);
+    boolRegister_.registerScalar("useIntensitySqewForAlignment",alignment_.useIntensitySqew_);
     boolRegister_.registerScalar("useIntensitySqewForAlignment",alignment_.useIntensitySqew_);
     doubleRegister_.removeScalarByVar(updnoiP_(0,0));
     doubleRegister_.removeScalarByVar(updnoiP_(1,1));
@@ -394,6 +405,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     doubleRegister_.registerScalar("alignmentGradientExponent",alignmentGradientExponent_);
     doubleRegister_.registerScalar("maxAllowedFeatureDistance",maxAllowedFeatureDistance_);
     doubleRegister_.registerScalar("minAllowedFeatureDistance",minAllowedFeatureDistance_);
+    intRegister_.registerScalar("medianKernelSize", medianKernelSize_);
+
   };
 
   /** \brief Destructor
@@ -654,7 +667,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         double theta = acos(cos_theta);
         double radius = point.head <2>().norm();
 
-        double metric = abs(sin(2*theta))*radius;
+        double metric = abs(sin(2*theta));
+        metric = pow(metric, 0.4)*radius;
                
         MXD F_temp(2, 2);
         F_temp = A_red_;
@@ -688,10 +702,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
           // find angle between eigen vector and epipolar line
           double cos_angle = featureOutput_.c().eigenVector2_.transpose()*epipolar_line_uvec;
-          if (abs(cos_angle) > 0.7){
-            F = F*0.0;
-            featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 10, 255));
-          }
+          // if (abs(cos_angle) > 0.7){
+          //   F = F*0.0;
+          //   featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 10, 255));
+          // }
         }
 
 
