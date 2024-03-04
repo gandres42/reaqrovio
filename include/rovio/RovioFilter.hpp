@@ -175,8 +175,6 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     mPrediction_.doubleRegister_.removeScalarByStr("kappa");
     boolRegister_.registerScalar("PoseUpdate.doVisualization",init_.plotPoseMeas_);
     reset(0.0);
-    std::cout << " ####################### Refractive index: " << init_.state_.ref() << std::endl;
-
   }
 
   /** \brief Reloads the camera calibration for all cameras and resets the depth map type.
@@ -196,6 +194,18 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
       init_.state_.dep(i).setType(depthTypeInt_);
     }
   };
+
+  /**
+   * @brief refresh refractive index in the state and the cameras
+   * 
+   */
+  void setRefractiveIndex(double refractive_index){
+    init_.state_.ref() = refractive_index;
+    for(int camID = 0;camID<mtState::nCam_;camID++){
+      multiCamera_.cameras_[camID].refrac_ind_ = refractive_index;
+    }
+    std::cout << "WARNING: Refractive index set to " << refractive_index << " using setRefractiveIndex" << std::endl;
+  }
 
   /** \brief Destructor
    */

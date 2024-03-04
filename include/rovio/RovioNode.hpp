@@ -712,9 +712,6 @@ class RovioNode{
       cv_img = res;
     }
 
-
-
-
     if(init_state_.isInitialized() && !cv_img.empty()){
       double msgTime = img->header.stamp.toSec();
       if(msgTime != imgUpdateMeas_.template get<mtImgMeas::_aux>().imgTime_){

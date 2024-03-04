@@ -71,7 +71,7 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
-        ref 1.31;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
+        ref 1.33;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
     }
     Covariance
     {
@@ -95,6 +95,7 @@ Init
         ref_0 0.000001          Covariance of initial refractive index
     }
 }
+
 ImgUpdate
 {   
 	updateVecNormTermination 1e-4;
@@ -106,7 +107,7 @@ ImgUpdate
     visualizePatches true;										Should the patches be visualized
     useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
     refractiveCalibration true;                                Online refractive index estimation to compensate for refractive distortion
-    nObservThersh  10.0;
+    nObservThersh  15.0;
     lineThresh 4.0;
     startLevel 2;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
@@ -209,7 +210,7 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
-        ref_0 2.25e-6;                         Try 0.00002 or 0.000002
+        ref_0 2.0e-6;                         Try 0.00002 or 0.000002
     }
     GravityVector
     {

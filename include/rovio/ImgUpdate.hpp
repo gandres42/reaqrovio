@@ -383,7 +383,6 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     boolRegister_.registerScalar("bilateralBlur",bilateralBlur_);
     boolRegister_.registerScalar("medianBlur",medianBlur_);
     boolRegister_.registerScalar("useIntensitySqewForAlignment",alignment_.useIntensitySqew_);
-    boolRegister_.registerScalar("useIntensitySqewForAlignment",alignment_.useIntensitySqew_);
     doubleRegister_.removeScalarByVar(updnoiP_(0,0));
     doubleRegister_.removeScalarByVar(updnoiP_(1,1));
     doubleRegister_.registerScalar("UpdateNoise.pix",updateNoisePix_);
@@ -668,7 +667,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         double radius = point.head <2>().norm();
 
         double metric = abs(sin(2*theta));
-        metric = pow(metric, 0.4)*pow(radius, 0.5);
+        metric = pow(metric, 0.5)*pow(radius, 0.8);
                
         MXD F_temp(2, 2);
         F_temp = A_red_;
