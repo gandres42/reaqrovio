@@ -224,7 +224,7 @@ class Patch {
             double level = 720.0/img.cols;
                         
             // reject points in the top 100 rows
-            if((c_y-img.rows/2)*level<-150){
+            if((c_y-img.rows/2)*level<-120){
               return false;
             }
             
