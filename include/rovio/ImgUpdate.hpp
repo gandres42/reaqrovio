@@ -627,7 +627,13 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
          */
 
         Eigen::Vector3d translation = relativeCameraMotion_.block<3,1>(0,3);
-        Eigen::Matrix3d rotation = relativeCameraMotion_.block<3,3>(0,0);
+        Eigen::Matrix3d rotation = relativeCameraMotion_.block<3,3>(0,0);  // rotation matrix
+
+        // find axis angle representation of the rotation
+        Eigen::AngleAxisd angleAxis(rotation);
+        Eigen::Vector3d axis = angleAxis.axis();
+        double angle = angleAxis.angle();
+        
         Eigen::Matrix3d skew;
 
         skew << 0, -translation(2), translation(1),
@@ -687,14 +693,13 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           F.col(ref_ind) = -A_red_*Jdpdn*metric; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
 
           // to reject points with high sigma
-          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond){
+          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.025 ){
             F.col(ref_ind) = F.col(ref_ind)*0.0;
             featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
           }
 
         }
 
-        
         // to reject points update from a point if parallel to the epipolar line
         if (line_cond){
 
