@@ -107,6 +107,7 @@ ImgUpdate
     visualizePatches false;										Should the patches be visualized
     useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
     refractiveCalibration true;                                Online refractive index estimation to compensate for refractive distortion
+    useObservabilityCheck true;
     nObservThersh  8.0;
     lineThresh 4.0;
     startLevel 2;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)

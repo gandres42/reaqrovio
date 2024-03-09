@@ -209,6 +209,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   bool useDirectMethod_;  /**<If true, the innovation term is based directly on pixel intensity errors.
                               If false, the reprojection error is used for the innovation term.*/
   bool refractiveCalibration_; /**<If true, the refractive index is estimated online.*/
+  bool useObservabilityCheck_; /**<If true, the observability of the refractive index used to scale the jacobian.*/
   bool doFrameVisualisation_;
   bool showCandidates_;
   bool visualizePatches_;
@@ -296,6 +297,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     zeroDistancePenalty_ = nDetectionBuckets_*1.0;
     useDirectMethod_ = true;
     refractiveCalibration_ = false;
+    useObservabilityCheck_ = false;
     doFrameVisualisation_ = true;
     showCandidates_ = false;
     visualizePatches_ = false;
@@ -370,6 +372,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     boolRegister_.registerScalar("MotionDetection.isEnabled",doVisualMotionDetection_);
     boolRegister_.registerScalar("useDirectMethod",useDirectMethod_);
     boolRegister_.registerScalar("refractiveCalibration",refractiveCalibration_);
+    boolRegister_.registerScalar("useObservabilityCheck",useObservabilityCheck_);
     boolRegister_.registerScalar("doFrameVisualisation",doFrameVisualisation_);
     boolRegister_.registerScalar("showCandidates",showCandidates_);
     boolRegister_.registerScalar("visualizePatches",visualizePatches_);
@@ -673,7 +676,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         double radius = point.head <2>().norm();
 
         double metric = abs(sin(2*theta));
-        metric = pow(metric, 0.5)*pow(radius, 0.8);
+        metric = pow(metric, 0.5)*pow(radius, 0.5);
                
         MXD F_temp(2, 2);
         F_temp = A_red_;
@@ -690,10 +693,15 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         // to compute the jacobian for the refractive index
         if (refractiveCalibration_){
           int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
-          F.col(ref_ind) = -A_red_*Jdpdn*metric; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+          if (useObservabilityCheck_){
+            F.col(ref_ind) = -A_red_*Jdpdn*metric; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+          }
+          else{
+            F.col(ref_ind) = -A_red_*Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+          }
 
           // to reject points with high sigma
-          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.025 ){
+          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.030 ){
             F.col(ref_ind) = F.col(ref_ind)*0.0;
             featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
           }
