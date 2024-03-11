@@ -164,6 +164,7 @@ class Camera{
    */
   void distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index, Eigen::Matrix2d& J) const;
   void distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index, Eigen::Matrix2d& J) const;
+  void distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J_equi, Eigen::Matrix2d& J_refrac) const;
 
   /** \brief Distorts a point on the unit plane (in camera coordinates) according to the Equidistant distortion model.
    *

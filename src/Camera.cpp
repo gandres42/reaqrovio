@@ -188,6 +188,13 @@ namespace rovio{
     J = J_temp_equi * J_temp_refrac;
   }
 
+  void Camera::distortEquiRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, Eigen::Matrix2d& J_equi, Eigen::Matrix2d& J_refrac) const{
+    Eigen::Vector2d temp;
+
+    distortRefractive(in, temp, J_refrac);
+    distortEquidist(temp, out, J_equi);
+  }
+
   void Camera::distortRefractive(const Eigen::Vector2d& in, Eigen::Vector2d& out, const double& refrac_index ,Eigen::Matrix2d& J) const{
     const double x2 = in(0) * in(0);
     const double y2 = in(1) * in(1);
@@ -463,8 +470,13 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     // Distort
     Eigen::Vector2d distorted;
     Eigen::Matrix2d J2;
+    Eigen::Matrix2d J_equi;
+    Eigen::Matrix2d J_refrac;
     // std::cout << "in bearingToPixel with distort(undistorted,distorted, refrac_index, J2)" << std::endl;
-    distort(undistorted,distorted, refrac_index, J2);
+    // distort(undistorted,distorted, refrac_index, J2);
+
+    distortEquiRefractive( undistorted,  distorted, J_equi, J_refrac);
+    J2 = J_equi * J_refrac;
 
     // Shift origin and scale
     c.x = static_cast<float>(K_(0, 0)*distorted(0) + K_(0, 2));
@@ -483,8 +495,13 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     // common_term = \frac{\g^{1/2}*n^2*r^2 + g^{3/2}}{g^2}
     double common_term = (sqrt(g)*n*n*r2 + pow(g, 1.5))/(g*g);
 
-    Jdpdn(0) = (K_(0, 0)*undistorted(0)*common_term);
-    Jdpdn(1) = (K_(1, 1)*undistorted(1)*common_term);
+    // Jdpdn(0) = (K_(0, 0)*undistorted(0)*common_term);
+    // Jdpdn(1) = (K_(1, 1)*undistorted(1)*common_term);
+
+    Jdpdn(0) = undistorted(0)*common_term;
+    Jdpdn(1) = undistorted(1)*common_term;
+
+    Jdpdn = K_.block<2,2>(0,0)*J_equi*Jdpdn;
 
     return true;
   }
