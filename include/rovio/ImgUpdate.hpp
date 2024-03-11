@@ -676,7 +676,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         double radius = point.head <2>().norm();
 
         double metric = abs(sin(2*theta));
-        metric = pow(metric, 0.5)*pow(radius, 0.5);
+        metric = pow(metric, 0.5)*pow(radius, 0.8);
                
         MXD F_temp(2, 2);
         F_temp = A_red_;
@@ -701,7 +701,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           }
 
           // to reject points with high sigma
-          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.030 ){
+          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond){
             F.col(ref_ind) = F.col(ref_ind)*0.0;
             featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
           }
