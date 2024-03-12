@@ -141,10 +141,10 @@ ImgUpdate
     alignConvergencePixelRange 10;								Assumed convergence range for image alignment (gets scaled with the level) [pixels]
     alignCoverageRatio 2;										How many sigma of the uncertainty should be covered in the adaptive alignement
     alignMaxUniSample 1;										Maximal number of alignment seeds on one side -> total number of sample = 2n+1. Carefull can get very costly if diverging!
-    patchRejectionTh 50.0;										If the average itensity error is larger than this the feauture is rejected [intensity], if smaller 0 the no check is performed
+    patchRejectionTh 30.0;										If the average itensity error is larger than this the feauture is rejected [intensity], if smaller 0 the no check is performed
     alignmentHuberNormThreshold 10;								Intensity error threshold for Huber norm (enabled if > 0)
-    alignmentGaussianWeightingSigma -1;							Width of Gaussian which is used for pixel error weighting (enabled if > 0)
-    alignmentGradientExponent -1.0;								Exponent used for gradient based weighting of residuals
+    alignmentGaussianWeightingSigma 1;							Width of Gaussian which is used for pixel error weighting (enabled if > 0)
+    alignmentGradientExponent 0.5;								Exponent used for gradient based weighting of residuals
     useIntensityOffsetForAlignment true;						Should an intensity offset between the patches be considered
     useIntensitySqewForAlignment true;							Should an intensity sqew between the patches be considered
     removeNegativeFeatureAfterUpdate true;						Should feature with negative distance get removed

@@ -631,6 +631,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
         Eigen::Vector3d translation = relativeCameraMotion_.block<3,1>(0,3);
         Eigen::Matrix3d rotation = relativeCameraMotion_.block<3,3>(0,0);  // rotation matrix
+        
 
         // find axis angle representation of the rotation
         Eigen::AngleAxisd angleAxis(rotation);
@@ -643,22 +644,40 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
                 translation(2), 0, -translation(0),
                 -translation(1), translation(0), 0;
 
-        Eigen::Matrix3d EssentianlMatrix = skew*rotation;
+        Eigen::Matrix3d EssentianlMatrix = skew*rotation.transpose();
 
         Eigen::Vector3d point = featureOutput_.c().get_nor().getVec() / featureOutput_.c().get_nor().getVec()(2);
+
+        Eigen::Vector4d point_h;
+        point_h.head<3>() = point;
+        point_h(3) = 1.0;
+        Eigen::Vector4d point_h_ = relativeCameraMotion_*point_h;
+        point_h = point_h/point_h(2);
+        point_h_ = point_h_/point_h_(2);
 
         Eigen::Vector3d epipolarLine = EssentianlMatrix.transpose() * point;
         
         Eigen::Vector2d epipolar_line_uvec;
+        Eigen::Vector2d delta_pixel;
         epipolar_line_uvec(0) = epipolarLine(1);
         epipolar_line_uvec(1) = -epipolarLine(0);
         epipolar_line_uvec = epipolar_line_uvec.normalized();
+        
+        // let epipolar_line_uvec = point_h_.head<2>() - point.head<2>();
+        delta_pixel = point_h_.head<2>() - point_h.head<2>();
+        delta_pixel = delta_pixel.normalized();
 
         // Plotting the epipolar line
         cv::Point2f epipolar_line_end;
         epipolar_line_end.x = featureOutput_.c().get_c().x + 50*epipolar_line_uvec(0);
         epipolar_line_end.y = featureOutput_.c().get_c().y + 50*epipolar_line_uvec(1);
         cv::line(drawImg_, featureOutput_.c().get_c(), epipolar_line_end, cv::Scalar(255, 10, 0), 1, 8, 0);
+
+        // Plotting the delta pixel
+        cv::Point2f delta_pixel_end;
+        delta_pixel_end.x = featureOutput_.c().get_c().x + 50*delta_pixel(0);
+        delta_pixel_end.y = featureOutput_.c().get_c().y + 50*delta_pixel(1);
+        cv::line(drawImg_, featureOutput_.c().get_c(), delta_pixel_end, cv::Scalar(0, 10, 255), 1, 8, 0);
 
         Eigen::Vector2d tangent_vec;
         tangent_vec(0) = -point(1);
@@ -701,7 +720,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           }
 
           // to reject points with high sigma
-          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond){
+          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.025){
             F.col(ref_ind) = F.col(ref_ind)*0.0;
             featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
           }

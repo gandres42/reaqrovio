@@ -473,10 +473,15 @@ void Camera::distort(const Eigen::Vector2d& in, Eigen::Vector2d& out, const doub
     Eigen::Matrix2d J_equi;
     Eigen::Matrix2d J_refrac;
     // std::cout << "in bearingToPixel with distort(undistorted,distorted, refrac_index, J2)" << std::endl;
-    // distort(undistorted,distorted, refrac_index, J2);
-
-    distortEquiRefractive( undistorted,  distorted, J_equi, J_refrac);
-    J2 = J_equi * J_refrac;
+    
+    // temporary fix for equirefractive
+    if (type_ == EQUIREFRAC){
+      distortEquiRefractive( undistorted,  distorted, J_equi, J_refrac);
+      J2 = J_equi * J_refrac;
+    }
+    else{
+      distort(undistorted,distorted, refrac_index, J2);
+    }
 
     // Shift origin and scale
     c.x = static_cast<float>(K_(0, 0)*distorted(0) + K_(0, 2));
