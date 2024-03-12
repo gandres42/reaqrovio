@@ -113,7 +113,7 @@ ImgUpdate
     startLevel 2;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
     nDetectionBuckets 200;										Number of discretization buckets used during the candidates selection
-    MahalanobisTh 5.88;											Mahalanobis treshold for the update, 5.8858356
+    MahalanobisTh 6.21;											Mahalanobis treshold for the update, 5.8858356
     UpdateNoise
     {
         pix 2;													Covariance used for the reprojection error, 1/focal_length is roughly 1 pixel std [rad] (~1/f ~ 1/400^2 = 1/160000)
