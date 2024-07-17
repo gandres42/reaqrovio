@@ -30,9 +30,11 @@ Init
         att_2 1
         vep 1
         vea 1
+        ref_0 1
     }
     State
     {
+        ref 1
         att_x 0
         att_y 0
         att_z 0
@@ -52,50 +54,6 @@ Init
     }
 }
 Camera0
-{
-    qCM_x 0
-    qCM_y 0
-    qCM_z 0
-    qCM_w 1
-    MrMC_x 0
-    MrMC_y 0
-    MrMC_z 0
-    CalibrationFile ""
-}
-Camera1
-{
-    qCM_x 0
-    qCM_y 0
-    qCM_z 0
-    qCM_w 1
-    MrMC_x 0
-    MrMC_y 0
-    MrMC_z 0
-    CalibrationFile ""
-}
-Camera2
-{
-    qCM_x 0
-    qCM_y 0
-    qCM_z 0
-    qCM_w 1
-    MrMC_x 0
-    MrMC_y 0
-    MrMC_z 0
-    CalibrationFile ""
-}
-Camera3
-{
-    qCM_x 0
-    qCM_y 0
-    qCM_z 0
-    qCM_w 1
-    MrMC_x 0
-    MrMC_y 0
-    MrMC_z 0
-    CalibrationFile ""
-}
-Camera4
 {
     qCM_x 0
     qCM_y 0
@@ -164,14 +122,19 @@ ImgUpdate
         pixelCoordinateMotionTh 1
     }
     useDirectMethod true
+    refractiveCalibration false
+    useObservabilityCheck false
     doFrameVisualisation true
     showCandidates false
     visualizePatches false
+    publishFrames false
     removeNegativeFeatureAfterUpdate true
     useCrossCameraMeasurements true
     doStereoInitialization true
     addGlobalBest false
     histogramEqualize false
+    bilateralBlur false
+    medianBlur false
     useIntensityOffsetForAlignment true
     useIntensitySqewForAlignment true
     statLocalQualityRange 10
@@ -183,6 +146,7 @@ ImgUpdate
     nDetectionBuckets 100
     fastDetectionThreshold 10
     alignMaxUniSample 5
+    medianKernelSize 5
     updateVecNormTermination 9.9999999999999995e-07
     MahalanobisTh 5.8858356000000001
     initCovFeature_0 1
@@ -210,11 +174,15 @@ ImgUpdate
     noiseGainForOffCamera 4
     alignConvergencePixelRange 1
     alignCoverageRatio 2
+    nObservThersh 0.20000000000000001
+    lineThresh 2
     alignmentHuberNormThreshold 0
     alignmentGaussianWeightingSigma 2
     alignmentGradientExponent 0
     discriminativeSamplingDistance 0
     discriminativeSamplingGain 0
+    maxAllowedFeatureDistance 10
+    minAllowedFeatureDistance 0
     ZeroVelocityUpdate
     {
         isEnabled false
@@ -249,8 +217,15 @@ Prediction
         att_2 0.0001
         vep 0.0001
         vea 0.0001
+        ref_0 0.0001
         nor 0.0001
         dep 0.0001
+    }
+    GravityVector
+    {
+        g_x 0
+        g_y 0
+        g_z -9.8065500001506845
     }
     MotionDetection
     {
