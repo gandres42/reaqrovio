@@ -113,6 +113,7 @@ LWF::TH_multiple_elements<LWF::VectorElement<3>,4>,
 LWF::QuaternionElement,
 LWF::ArrayElement<LWF::VectorElement<3>,nCam>,
 LWF::ArrayElement<LWF::QuaternionElement,nCam>,
+LWF::ScalarElement,                                                // Refractive index
 LWF::ArrayElement<RobocentricFeatureElement,nMax>,
 LWF::ArrayElement<LWF::VectorElement<3>,nPose>,
 LWF::ArrayElement<LWF::QuaternionElement,nPose>,
@@ -123,6 +124,7 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
       LWF::QuaternionElement,
       LWF::ArrayElement<LWF::VectorElement<3>,nCam>,
       LWF::ArrayElement<LWF::QuaternionElement,nCam>,
+      LWF::ScalarElement,                                          // Refractive index
       LWF::ArrayElement<RobocentricFeatureElement,nMax>,
       LWF::ArrayElement<LWF::VectorElement<3>,nPose>,
       LWF::ArrayElement<LWF::QuaternionElement,nPose>,
@@ -141,7 +143,8 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
   static constexpr unsigned int _att = _gyb+1;  /**<Idx. Quaternion qWM: IMU coordinates to World coordinates.*/
   static constexpr unsigned int _vep = _att+1;  /**<Idx. Position Vector MrMC: Pointing from the IMU-Frame to the Camera-Frame, expressed in IMU-Coordinates.*/
   static constexpr unsigned int _vea = _vep+1;  /**<Idx. Quaternion qCM: IMU-Coordinates to Camera-Coordinates.*/
-  static constexpr unsigned int _fea = _vea+1;  /**<Idx. Robocentric feature parametrization.*/
+  static constexpr unsigned int _ref = _vea+1;  /**<Idx. Refractive index.*/
+  static constexpr unsigned int _fea = _ref+1;  /**<Idx. Robocentric feature parametrization.*/
   static constexpr unsigned int _pop = _fea+1;  /**<Idx. Additonial pose in state, linear part. IrIW.*/
   static constexpr unsigned int _poa = _pop+1;  /**<Idx. Additonial pose in state, rotational part. qWI.*/
   static constexpr unsigned int _aux = _poa+1;  /**<Idx. Auxiliary state.*/
@@ -157,6 +160,7 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
     this->template getName<_att>() = "att";
     this->template getName<_vep>() = "vep";
     this->template getName<_vea>() = "vea";
+    this->template getName<_ref>() = "ref";
     this->template getName<_fea>() = "fea";
     this->template getName<_pop>() = "pop";
     this->template getName<_poa>() = "poa";
@@ -251,6 +255,19 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
   }
   inline const QPD& qWM() const{
     return this->template get<_att>();
+  }
+  //@}
+
+  //@{
+  /** \brief Get/Set the refractive index.
+   *
+   *  @return a reference to the refractive index.
+   */
+  inline double& ref(){
+    return this->template get<_ref>();
+  }
+  inline const double& ref() const{
+    return this->template get<_ref>();
   }
   //@}
 
@@ -441,6 +458,17 @@ StateAuxiliary<nMax,nLevels,patchSize,nCam>>{
       mpMultiCamera->qCB_[i] = qCM(i);
     }
   }
+
+  /**
+   * @brief Update refractive index
+   * @param ref - new refractive index
+   */
+  void updateRefIndex(MultiCamera<nCam>* mpMultiCamera){
+    for(int i=0;i<nCam;i++){
+      mpMultiCamera->cameras_[i].refrac_ind_ = ref();
+    }
+  }
+    
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -471,16 +499,18 @@ class PredictionMeas: public LWF::State<LWF::VectorElement<3>,LWF::VectorElement
  *  @tparam STATE - Filter State
  */
 template<typename STATE>
-class PredictionNoise: public LWF::State<LWF::TH_multiple_elements<LWF::VectorElement<3>,5>,
-LWF::ArrayElement<LWF::VectorElement<3>,STATE::nCam_>,
-LWF::ArrayElement<LWF::VectorElement<3>,STATE::nCam_>,
-LWF::ArrayElement<LWF::VectorElement<3>,STATE::nMax_>,
+class PredictionNoise: public LWF::State<LWF::TH_multiple_elements<LWF::VectorElement<3>,5>,  // for pos, vel, acb, gyr, att
+LWF::ArrayElement<LWF::VectorElement<3>,STATE::nCam_>,                                        // for vep   
+LWF::ArrayElement<LWF::VectorElement<3>,STATE::nCam_>,                                        // for vea                          
+LWF::ScalarElement,                                                                           // for ref
+LWF::ArrayElement<LWF::VectorElement<3>,STATE::nMax_>,                                        // for fea  
 LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>,
 LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>>{
  public:
   using LWF::State<LWF::TH_multiple_elements<LWF::VectorElement<3>,5>,
       LWF::ArrayElement<LWF::VectorElement<3>,STATE::nCam_>,
       LWF::ArrayElement<LWF::VectorElement<3>,STATE::nCam_>,
+      LWF::ScalarElement,
       LWF::ArrayElement<LWF::VectorElement<3>,STATE::nMax_>,
       LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>,
       LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>>::E_;
@@ -491,7 +521,8 @@ LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>>{
   static constexpr unsigned int _att = _gyb+1;  /**<Idx. Quaternion qWM: IMU coordinates to World coordinates.*/
   static constexpr unsigned int _vep = _att+1;  /**<Idx. Position Vector MrMC: Pointing from the IMU-Frame to the Camera-Frame, expressed in IMU-Coordinates.*/
   static constexpr unsigned int _vea = _vep+1;  /**<Idx. Quaternion qCM: IMU-Coordinates to Camera-Coordinates.*/
-  static constexpr unsigned int _fea = _vea+1;  /**<Idx. Feature parametrizations (bearing + depth parameter), array.*/
+  static constexpr unsigned int _ref = _vea+1;  /**<Idx. Refractive index.*/
+  static constexpr unsigned int _fea = _ref+1;  /**<Idx. Feature parametrizations (bearing + depth parameter), array.*/
   static constexpr unsigned int _pop = _fea+1;  /**<Idx. Additonial pose in state, linear part.*/
   static constexpr unsigned int _poa = _pop+1;  /**<Idx. Additonial pose in state, rotational part.*/
 
@@ -506,6 +537,7 @@ LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>>{
     this->template getName<_att>() = "att";
     this->template getName<_vep>() = "vep";
     this->template getName<_vea>() = "vea";
+    this->template getName<_ref>() = "ref";
     this->template getName<_fea>() = "fea";
     this->template getName<_pop>() = "pop";
     this->template getName<_poa>() = "poa";
@@ -529,7 +561,12 @@ LWF::ArrayElement<LWF::VectorElement<3>,STATE::nPose_>>{
 template<unsigned int nMax, int nLevels, int patchSize,int nCam,int nPose>
 class FilterState: public LWF::FilterState<State<nMax,nLevels,patchSize,nCam,nPose>,PredictionMeas,PredictionNoise<State<nMax,nLevels,patchSize,nCam,nPose>>,0>{
  public:
-  typedef LWF::FilterState<State<nMax,nLevels,patchSize,nCam,nPose>,PredictionMeas,PredictionNoise<State<nMax,nLevels,patchSize,nCam,nPose>>,0> Base;
+  typedef LWF::FilterState< State<nMax,nLevels,patchSize,nCam,nPose>,
+                            PredictionMeas,
+                            PredictionNoise<State<nMax,nLevels,patchSize,nCam,nPose>>,
+                            0> Base; /**<Filter State Definition.*/
+  /* typedef FilterState Base: so base is an alias of FilterState*/
+
   typedef typename Base::mtState mtState;  /**<Local Filter %State Type. \see LWF::FilterState*/
   using Base::state_;  /**<Filter State. \see LWF::FilterState*/
   using Base::cov_;  /**<Filter State Covariance Matrix. \see LWF::FilterState*/

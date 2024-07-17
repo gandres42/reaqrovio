@@ -46,6 +46,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
 #include <image_transport/image_transport.h>
 
@@ -153,6 +154,8 @@ class RovioNode{
   ros::Publisher pubPoseWithCovStamped_;
   ros::Publisher pub_T_J_W_transform;
   tf::TransformBroadcaster tb_;
+  tf::TransformListener tf_listener_;
+  
   ros::Publisher pubPcl_;            /**<Publisher: Ros point cloud, visualizing the landmarks.*/
   ros::Publisher pubPatch_;            /**<Publisher: Patch data.*/
   ros::Publisher pubMarkers_;          /**<Publisher: Ros line marker, indicating the depth uncertainty of a landmark.*/
@@ -160,6 +163,7 @@ class RovioNode{
   ros::Publisher pubBadFeatureIds;
   ros::Publisher pubExtrinsics_[mtState::nCam_];
   ros::Publisher pubImuBias_;
+  ros::Publisher pubRefractiveIndex_;
 
   image_transport::Publisher pubImg_;
   image_transport::Publisher pubPatchImg_;
@@ -178,6 +182,7 @@ class RovioNode{
   visualization_msgs::Marker featureIdsMsgs_;
   visualization_msgs::Marker badFeatureIdsMsgs_;
   sensor_msgs::Imu imuBiasMsg_;
+  geometry_msgs::PointStamped refractiveIndexMsg_;
   int msgSeq_;
 
   // Rovio outputs and coordinate transformations
@@ -204,6 +209,8 @@ class RovioNode{
   std::string camera_frame_;
   std::string imu_frame_;
 
+  double imu_offset_= 0.0;
+
   // CUSTOMIZATION
   bool resize_input_image_ = false;
   double resize_factor_ = 1.0; 
@@ -211,7 +218,12 @@ class RovioNode{
   cv::Ptr<cv::CLAHE> clahe;
   double clahe_clip_limit_ = 2.0;  //number of pixels used to clip the CDF for histogram equalization
   double clahe_grid_size_ = 8.0;   //clahe_grid_size_ x clahe_grid_size_ pixel neighborhood used
+  double img_gamma = 1.0;
   const float max_8bit_image_val = 255.0;
+  Eigen::Matrix4d current_pose_ = Eigen::Matrix4d::Identity();
+  Eigen::Matrix4d previous_pose_ = Eigen::Matrix4d::Identity();
+  Eigen::Matrix4d relative_pose_ = Eigen::Matrix4d::Identity();
+  tf::StampedTransform last_imu_tf_;
 
 
   /** \brief Constructor
@@ -267,6 +279,7 @@ class RovioNode{
       pubExtrinsics_[camID] = nh_.advertise<geometry_msgs::PoseWithCovarianceStamped>("rovio/extrinsics" + std::to_string(camID), 1 );
     }
     pubImuBias_ = nh_.advertise<sensor_msgs::Imu>("rovio/imu_biases", 1 );
+    pubRefractiveIndex_ = nh_.advertise<geometry_msgs::PointStamped>("rovio/refractive_index", 1 );
 
     image_transport::ImageTransport it(nh_);
     pubImg_ = it.advertise("rovio/image", 1);
@@ -286,6 +299,8 @@ class RovioNode{
     nh_private_.param("camera_frame", camera_frame_, camera_frame_);
     nh_private_.param("imu_frame", imu_frame_, imu_frame_);
 
+    nh_private_.param("imu_offset", imu_offset_, -0.00177);
+
       //CLAHE
     nh_private_.param("histogram_equalize_8bit_images", histogram_equalize_8bit_images_, true);
     if (histogram_equalize_8bit_images_)
@@ -297,6 +312,7 @@ class RovioNode{
       clahe->setClipLimit(clahe_clip_limit_);
       clahe->setTilesGridSize(cv::Size(clahe_grid_size_, clahe_grid_size_));
     }
+    nh_private_.param("img_gamma", img_gamma, 1.0);
     nh_private_.param("resize_input_image", resize_input_image_, false);
     nh_private_.param("resize_factor", resize_factor_, 0.5);
     //Image resize
@@ -534,18 +550,18 @@ class RovioNode{
     predictionMeas_.template get<mtPredictionMeas::_acc>() = Eigen::Vector3d(imu_msg->linear_acceleration.x,imu_msg->linear_acceleration.y,imu_msg->linear_acceleration.z);
     predictionMeas_.template get<mtPredictionMeas::_gyr>() = Eigen::Vector3d(imu_msg->angular_velocity.x,imu_msg->angular_velocity.y,imu_msg->angular_velocity.z);
     if(init_state_.isInitialized()){
-      mpFilter_->addPredictionMeas(predictionMeas_,imu_msg->header.stamp.toSec());
+      mpFilter_->addPredictionMeas(predictionMeas_,imu_msg->header.stamp.toSec() + imu_offset_);
       updateAndPublish();
     } else {
       switch(init_state_.state_) {
         case FilterInitializationState::State::WaitForInitExternalPose: {
           std::cout << "-- Filter: Initializing using external pose ..." << std::endl;
-          mpFilter_->resetWithPose(init_state_.WrWM_, init_state_.qMW_, imu_msg->header.stamp.toSec());
+          mpFilter_->resetWithPose(init_state_.WrWM_, init_state_.qMW_, imu_msg->header.stamp.toSec()+imu_offset_);
           break;
         }
         case FilterInitializationState::State::WaitForInitUsingAccel: {
           std::cout << "-- Filter: Initializing using accel. measurement ..." << std::endl;
-          mpFilter_->resetWithAccelerometer(predictionMeas_.template get<mtPredictionMeas::_acc>(),imu_msg->header.stamp.toSec());
+          mpFilter_->resetWithAccelerometer(predictionMeas_.template get<mtPredictionMeas::_acc>(),imu_msg->header.stamp.toSec()+imu_offset_);
           break;
         }
         default: {
@@ -556,7 +572,7 @@ class RovioNode{
       }
 
       std::cout << std::setprecision(12);
-      std::cout << "-- Filter: Initialized at t = " << imu_msg->header.stamp.toSec() << std::endl;
+      std::cout << "-- Filter: Initialized at t = " << imu_msg->header.stamp.toSec() + imu_offset_ << std::endl;
       init_state_.state_ = FilterInitializationState::State::Initialized;
     }
   }
@@ -637,6 +653,21 @@ class RovioNode{
         cv_img.convertTo(inImg, CV_8UC1);
         clahe->apply(inImg, outImg);
         outImg.convertTo(cv_img, CV_8UC1); 
+
+        // apply bilateral filter
+        if (mpImgUpdate_->bilateralBlur_){
+            cv_img.convertTo(inImg, CV_8UC1);
+            cv::bilateralFilter(inImg, outImg, 9, 50, 50);
+            outImg.convertTo(cv_img, CV_8UC1); 
+        }        
+        // median blur
+        if (mpImgUpdate_->medianBlur_){
+            cv_img.convertTo(inImg, CV_8UC1);
+            cv::medianBlur( inImg, outImg, mpImgUpdate_->medianKernelSize_);
+            outImg.convertTo(cv_img, CV_8UC1); 
+
+        }
+        
       } else
         ROS_WARN_THROTTLE(5, "Histogram Equaliztion for 8-bit intensity images is turned on but input Image is not 8-bit");
     }
@@ -672,28 +703,19 @@ class RovioNode{
 
     
     // // // // To dim the images 
-    // if(init_state_.isInitialized() && !cv_img.empty()){
+    if(init_state_.isInitialized() && !cv_img.empty()){
 
     //   //>>> Gamma correction
-    //   cv::Mat cv_img_hsv = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   cv::Mat img_cp = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   cv::Mat ones_ = cv::Mat::zeros(cv_img.size(), cv_img.type());
-    //   double alpha = 0.5; /*< Simple contrast control */
-    //   int beta = 0;       /*< Simple brightness control */
 
-    //   std::cout<<cv_img.size()<<std::endl;
-  
-    //   cv_img.copyTo(img_cp);
-
-    //   for (int y = 0; y < cv_img_hsv.rows; y++) {
-    //       for (int x = 0; x < cv_img_hsv.cols; x++) {
-    //               cv_img_hsv.at<cv::Vec3b>(y, x)[0] = ones_.at<cv::Vec3b>(y, x)[0] ;
-      
-    //       }
-    //   }
-    // //   // cv_img = cv_img_hsv;
-    // }
-    // //   //<<<
+      cv::Mat lookUpTable(1, 256, CV_8U);
+      for (int i = 0; i < 256; i++)
+      {
+          lookUpTable.at<uchar>(i) = cv::saturate_cast<uchar>(pow(i / 255.0, img_gamma) * 255.0);
+      }
+      cv::Mat res = cv_img.clone();
+      LUT(cv_img, lookUpTable, res);
+      cv_img = res;
+    }
 
     if(init_state_.isInitialized() && !cv_img.empty()){
       double msgTime = img->header.stamp.toSec();
@@ -883,7 +905,9 @@ class RovioNode{
         // Obtain the save filter state.
         mtFilterState& filterState = mpFilter_->safe_;
 	      mtState& state = mpFilter_->safe_.state_;
-        state.updateMultiCameraExtrinsics(&mpFilter_->multiCamera_);
+        state.updateMultiCameraExtrinsics(&mpFilter_->multiCamera_);        
+        state.updateRefIndex(&mpFilter_->multiCamera_);                    // Updates the refractive index to be use by functions in camera class, eg pixelToBearing()
+
         MXD& cov = mpFilter_->safe_.cov_;
         imuOutputCT_.transformState(state,imuOutput_);
 
@@ -934,6 +958,35 @@ class RovioNode{
           tb_.sendTransform(tf_transform_CM);
         }
 
+        tf::Transform tf_transform_CM0;
+        int camID = 0;
+        tf_transform_CM0.setOrigin(tf::Vector3(state.MrMC(camID)(0),state.MrMC(camID)(1),state.MrMC(camID)(2)));
+        tf_transform_CM0.setRotation(tf::Quaternion(state.qCM(camID).x(),state.qCM(camID).y(),state.qCM(camID).z(),-state.qCM(camID).w()));
+
+        // Get relative pose betwwen last and current camera frame
+
+        Eigen::Matrix4d camera_imu_tf = Eigen::Matrix4d::Identity();
+
+        Eigen::Quaterniond current_quat(imuOutput_.qBW().w(), imuOutput_.qBW().x(), imuOutput_.qBW().y(), imuOutput_.qBW().z());
+        
+        current_pose_.block<3,3>(0,0) = current_quat.toRotationMatrix();
+        current_pose_.block<3,1>(0,3) = imuOutput_.WrWB();
+
+        Eigen::Quaterniond camera_rot(tf_transform_CM0.getRotation().w(), tf_transform_CM0.getRotation().x(), tf_transform_CM0.getRotation().y(), tf_transform_CM0.getRotation().z());
+        camera_imu_tf.block<3,3>(0,0) = camera_rot.toRotationMatrix();
+        camera_imu_tf.block<3,1>(0,3) = Eigen::Vector3d(tf_transform_CM0.getOrigin().x(), tf_transform_CM0.getOrigin().y(), tf_transform_CM0.getOrigin().z());
+
+        Eigen::Matrix4d camera_current_tf = current_pose_*camera_imu_tf;
+        Eigen::Matrix4d camera_previous_tf = previous_pose_*camera_imu_tf;
+        Eigen::Matrix4d relative_pose_ = camera_previous_tf.inverse() * camera_current_tf;
+
+        mpImgUpdate_->relativeCameraMotion_ = relative_pose_;
+
+
+        // std::cout << "Relative Pose: " << std::endl << relative_pose_ << std::endl;
+
+        previous_pose_ = current_pose_;
+
         // Publish Odometry
         if(pubOdometry_.getNumSubscribers() > 0 || forceOdometryPublishing_){
           // Compute covariance of output
@@ -973,6 +1026,7 @@ class RovioNode{
             }
           }
           pubOdometry_.publish(odometryMsg_);
+
         }
 
         if(pubPoseWithCovStamped_.getNumSubscribers() > 0 || forcePoseWithCovariancePublishing_){
@@ -1015,6 +1069,15 @@ class RovioNode{
           transformMsg_.transform.rotation.z = imuOutput_.qBW().z();
           transformMsg_.transform.rotation.w = -imuOutput_.qBW().w();
           pubTransform_.publish(transformMsg_);
+        }
+
+        // Publish Refractive Index
+        if(pubRefractiveIndex_.getNumSubscribers() > 0){
+          refractiveIndexMsg_.header.seq = msgSeq_;
+          refractiveIndexMsg_.header.stamp = ros::Time(mpFilter_->safe_.t_);
+          refractiveIndexMsg_.point.x = imuOutput_.ref();
+          refractiveIndexMsg_.point.z = 1.33;
+          pubRefractiveIndex_.publish(refractiveIndexMsg_);
         }
 
         if(pub_T_J_W_transform.getNumSubscribers() > 0 || forceTransformPublishing_){
@@ -1098,7 +1161,6 @@ class RovioNode{
             if(filterState.fsm_.isValid_[i]){
 
               FeatureManager<mtState::nLevels_,mtState::patchSize_,mtState::nCam_>& f = filterState.fsm_.features_[i];
-              
 
               geometry_msgs::Point validFeature;
               validFeature.x = filterState.fsm_.features_[i].idx_;

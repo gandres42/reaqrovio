@@ -91,10 +91,12 @@ namespace rovio{
     }
   }
 
+
   void FeatureCoordinates::set_nor(const LWF::NormalVectorElement& nor, const bool resetWarp){
     nor_ = nor;
     valid_nor_ = true;
     valid_c_ = false;
+
     if(trackWarping_ && resetWarp){
       valid_warp_c_ = false;
       valid_warp_nor_ = false;

@@ -34,12 +34,13 @@
 
 namespace rovio {
 
-class StandardOutput: public LWF::State<LWF::TH_multiple_elements<LWF::VectorElement<3>,3>,LWF::QuaternionElement>{
+class StandardOutput: public LWF::State<LWF::TH_multiple_elements<LWF::VectorElement<3>,3>,LWF::QuaternionElement, LWF::ScalarElement>{
  public:
   static constexpr unsigned int _pos = 0;         /**<Idx. Position Vector WrWB: Pointing from the World-Frame to the Body-Frame, expressed in World-Coordinates.*/
   static constexpr unsigned int _vel = _pos+1;    /**<Idx. Velocity Vector  BvB: Absolute velocity of the of the Body-Frame, expressed in Body-Coordinates.*/
   static constexpr unsigned int _ror = _vel+1;    /**<Idx. Angular velocity BwWB: Absolute angular velocity of the Body frame (of the solid), expressed in Body coordinates.*/
   static constexpr unsigned int _att = _ror+1;    /**<Idx. Quaternion qBW: World coordinates to Body coordinates.*/
+  static constexpr unsigned int _ref = _att+1;    /**<Idx. Refractive index.*/
   StandardOutput(){
   }
   virtual ~StandardOutput(){};
@@ -95,6 +96,18 @@ class StandardOutput: public LWF::State<LWF::TH_multiple_elements<LWF::VectorEle
     return this->template get<_att>();
   }
   //@}
+
+  //@{
+  /** \brief Get the refractive index.
+   *
+   *  @return the refractive index.
+   */
+  inline double& ref(){
+    return this->template get<_ref>();
+  }
+  inline const double& ref() const{
+    return this->template get<_ref>();
+  }
 };
 
 template<typename STATE>
@@ -164,6 +177,7 @@ class ImuOutputCT:public LWF::CoordinateTransform<STATE,StandardOutput>{
     output.BwWB() = input.aux().MwWMmeas_-input.gyb();
     output.BvB()  = -input.MvM(); // minus is required!
     output.qBW()  = input.qWM().inverted();
+    output.ref()  = input.ref();                     // refractive index
   }
   void jacTransform(MXD& J, const mtInput& input) const{
     J.setZero();

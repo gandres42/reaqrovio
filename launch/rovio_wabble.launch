@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Sample ROVIO Node Launch File with Options -->
+<launch>
+  <node pkg="rovio" type="rovio_node" name="rovio" output="screen" clear_params="true" required="true">
+
+    <!-- Config File -->
+    <param name="filter_config" value="$(find rovio)/cfg/wabble/rovio.info"/>
+
+    <!-- Camera Calibration YAML File -->
+    <param name="camera0_config" value="$(find rovio)/cfg/wabble/cam0.yaml"/>
+
+    <!-- Input Topics -->
+    <remap from="imu0" to="/imu_apps"/>
+    <remap from="cam0/image_raw" to="/tracking_new"/>
+
+  </node>
+</launch>

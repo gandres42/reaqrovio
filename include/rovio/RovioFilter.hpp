@@ -89,11 +89,13 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     subHandlers_["VelocityUpdate"] = &std::get<2>(mUpdates_);
     boolRegister_.registerScalar("Common.doVECalibration",init_.state_.aux().doVECalibration_);
     intRegister_.registerScalar("Common.depthType",depthTypeInt_);
+
     for(int camID=0;camID<mtState::nCam_;camID++){
       cameraCalibrationFile_[camID] = "";
       stringRegister_.registerScalar("Camera" + std::to_string(camID) + ".CalibrationFile",cameraCalibrationFile_[camID]);
       doubleRegister_.registerVector("Camera" + std::to_string(camID) + ".MrMC",init_.state_.aux().MrMC_[camID]);
       doubleRegister_.registerQuaternion("Camera" + std::to_string(camID) + ".qCM",init_.state_.aux().qCM_[camID]);
+      doubleRegister_.registerScalar("Init.State.ref", multiCamera_.cameras_[camID].refrac_ind_);
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(0));
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(1));
       doubleRegister_.removeScalarByVar(init_.state_.MrMC(camID)(2));
@@ -131,6 +133,8 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
         std::get<1>(mUpdates_).doubleRegister_.registerScalar("init_cov_qWI",init_.cov_(mtState::template getId<mtState::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j,mtState::template getId<mtState::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j));
         std::get<1>(mUpdates_).doubleRegister_.registerScalar("pre_cov_IrIW",mPrediction_.prenoiP_(mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_pop>(std::get<1>(mUpdates_).inertialPoseIndex_)+j,mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_pop>(std::get<1>(mUpdates_).inertialPoseIndex_)+j));
         std::get<1>(mUpdates_).doubleRegister_.registerScalar("pre_cov_qWI",mPrediction_.prenoiP_(mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j,mtPrediction::mtNoise::template getId<mtPrediction::mtNoise::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j));
+
+        std::cout << " indicies: " << mtState::template getId<mtState::_pop>(std::get<1>(mUpdates_).inertialPoseIndex_)+j << " " << mtState::template getId<mtState::_poa>(std::get<1>(mUpdates_).inertialPoseIndex_)+j << std::endl;
       }
     }
     if(std::get<1>(mUpdates_).bodyPoseIndex_>=0){
@@ -190,6 +194,18 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
       init_.state_.dep(i).setType(depthTypeInt_);
     }
   };
+
+  /**
+   * @brief refresh refractive index in the state and the cameras
+   * 
+   */
+  void setRefractiveIndex(double refractive_index){
+    init_.state_.ref() = refractive_index;
+    for(int camID = 0;camID<mtState::nCam_;camID++){
+      multiCamera_.cameras_[camID].refrac_ind_ = refractive_index;
+    }
+    std::cout << "WARNING: Refractive index set to " << refractive_index << " using setRefractiveIndex" << std::endl;
+  }
 
   /** \brief Destructor
    */

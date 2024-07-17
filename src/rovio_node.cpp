@@ -109,6 +109,14 @@ int main(int argc, char** argv){
   }
   mpFilter->refreshProperties();
 
+  // Set refractive index from ROS parameter. CUATION: This overwrites the value in rovio.info file.
+  double refractive_index;
+  if (nh_private.getParam("refractive_index", refractive_index)) {
+
+    ROS_WARN("Setting refractive index to %f from ROS parameter.", refractive_index);
+    mpFilter->setRefractiveIndex(refractive_index);
+  }
+
   // Node
   rovio::RovioNode<mtFilter> rovioNode(nh, nh_private, mpFilter);
   rovioNode.makeTest();

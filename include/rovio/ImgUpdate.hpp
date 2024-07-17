@@ -208,6 +208,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double patchRejectionTh_;
   bool useDirectMethod_;  /**<If true, the innovation term is based directly on pixel intensity errors.
                               If false, the reprojection error is used for the innovation term.*/
+  bool refractiveCalibration_; /**<If true, the refractive index is estimated online.*/
+  bool useObservabilityCheck_; /**<If true, the observability of the refractive index used to scale the jacobian.*/
   bool doFrameVisualisation_;
   bool showCandidates_;
   bool visualizePatches_;
@@ -224,17 +226,24 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
   double noiseGainForOffCamera_; /**<Factor added on update noise if not main camera*/
   double alignConvergencePixelRange_;
   double alignCoverageRatio_;
+  double nObservThersh_;               /**<Threshold for the observability check for refractive index*/
+  double lineThresh_;                  /**<Threshold for the classifying line features*/
   int alignMaxUniSample_;
   bool useCrossCameraMeasurements_; /**<Should features be matched across cameras.*/
   bool doStereoInitialization_; /**<Should a stereo match be used for feature initialization.*/
   bool addGlobalBest_;
   bool histogramEqualize_;
+  bool bilateralBlur_;
+  bool medianBlur_;
+
   double alignmentHuberNormThreshold_; /**<Intensity error threshold for Huber norm.*/
   double alignmentGaussianWeightingSigma_; /**<Width of Gaussian which is used for pixel error weighting.*/
   double alignmentGradientExponent_; /**<Exponent used for gradient based weighting of residuals.*/
   double discriminativeSamplingDistance_; /**<Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).*/
   double discriminativeSamplingGain_; /**<Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).*/
-
+  double maxAllowedFeatureDistance_;
+  double minAllowedFeatureDistance_;
+  int medianKernelSize_;
 
   // Temporary
   mutable PixelOutputCT pixelOutputCT_;
@@ -262,6 +271,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
   mutable MultilevelPatchAlignment<mtState::nLevels_,mtState::patchSize_> alignment_; /**<Patch aligner*/
   mutable cv::Mat drawImg_; /**<Image currently used for drawing*/
+  mutable Eigen::Matrix4d relativeCameraMotion_; /**<Relative pose between current and previous frame*/
 
   /** \brief Constructor.
    *
@@ -286,6 +296,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     penaltyDistance_ = 20;
     zeroDistancePenalty_ = nDetectionBuckets_*1.0;
     useDirectMethod_ = true;
+    refractiveCalibration_ = false;
+    useObservabilityCheck_ = false;
     doFrameVisualisation_ = true;
     showCandidates_ = false;
     visualizePatches_ = false;
@@ -311,15 +323,23 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     noiseGainForOffCamera_ = 4.0;
     alignConvergencePixelRange_ = 1.0;
     alignCoverageRatio_ = 2.0;
+    nObservThersh_ = 0.2;
+    lineThresh_ = 2.0;
     alignMaxUniSample_ = 5;
     useCrossCameraMeasurements_ = true;
     doStereoInitialization_ = true;
     addGlobalBest_ = false;
     histogramEqualize_ = false;
+    medianBlur_ = false;
+    bilateralBlur_ = false;
+
     removalFactor_ = 1.1;
     alignmentGaussianWeightingSigma_ = 2.0;
     discriminativeSamplingDistance_ = 0.0;
     discriminativeSamplingGain_ = 0.0;
+    maxAllowedFeatureDistance_ = 10.0;
+    minAllowedFeatureDistance_ = 0.0;
+    medianKernelSize_ = 5;
     doubleRegister_.registerDiagonalMatrix("initCovFeature",initCovFeature_);
     doubleRegister_.registerScalar("initDepth",initDepth_);
     doubleRegister_.registerScalar("startDetectionTh",startDetectionTh_);
@@ -338,6 +358,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     doubleRegister_.registerScalar("maxUncertaintyToDepthRatioForDepthInitialization",maxUncertaintyToDepthRatioForDepthInitialization_);
     doubleRegister_.registerScalar("alignConvergencePixelRange",alignConvergencePixelRange_);
     doubleRegister_.registerScalar("alignCoverageRatio",alignCoverageRatio_);
+    doubleRegister_.registerScalar("nObservThersh",nObservThersh_);
+    doubleRegister_.registerScalar("lineThresh",lineThresh_);
     doubleRegister_.registerScalar("removalFactor",removalFactor_);
     doubleRegister_.registerScalar("discriminativeSamplingDistance",discriminativeSamplingDistance_);
     doubleRegister_.registerScalar("discriminativeSamplingGain",discriminativeSamplingGain_);
@@ -349,6 +371,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     intRegister_.registerScalar("alignMaxUniSample",alignMaxUniSample_);
     boolRegister_.registerScalar("MotionDetection.isEnabled",doVisualMotionDetection_);
     boolRegister_.registerScalar("useDirectMethod",useDirectMethod_);
+    boolRegister_.registerScalar("refractiveCalibration",refractiveCalibration_);
+    boolRegister_.registerScalar("useObservabilityCheck",useObservabilityCheck_);
     boolRegister_.registerScalar("doFrameVisualisation",doFrameVisualisation_);
     boolRegister_.registerScalar("showCandidates",showCandidates_);
     boolRegister_.registerScalar("visualizePatches",visualizePatches_);
@@ -359,6 +383,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     boolRegister_.registerScalar("addGlobalBest",addGlobalBest_);
     boolRegister_.registerScalar("histogramEqualize",histogramEqualize_);
     boolRegister_.registerScalar("useIntensityOffsetForAlignment",alignment_.useIntensityOffset_);
+    boolRegister_.registerScalar("bilateralBlur",bilateralBlur_);
+    boolRegister_.registerScalar("medianBlur",medianBlur_);
     boolRegister_.registerScalar("useIntensitySqewForAlignment",alignment_.useIntensitySqew_);
     doubleRegister_.removeScalarByVar(updnoiP_(0,0));
     doubleRegister_.removeScalarByVar(updnoiP_(1,1));
@@ -379,6 +405,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     doubleRegister_.registerScalar("alignmentGaussianWeightingSigma",alignmentGaussianWeightingSigma_);
     alignmentGradientExponent_ = static_cast<double>(alignment_.gradientExponent_);
     doubleRegister_.registerScalar("alignmentGradientExponent",alignmentGradientExponent_);
+    doubleRegister_.registerScalar("maxAllowedFeatureDistance",maxAllowedFeatureDistance_);
+    doubleRegister_.registerScalar("minAllowedFeatureDistance",minAllowedFeatureDistance_);
+    intRegister_.registerScalar("medianKernelSize", medianKernelSize_);
+
   };
 
   /** \brief Destructor
@@ -469,10 +499,14 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       {
         std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
       }
-
-      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_);
+      Eigen::Matrix<double,2,1> Jdpdn;
+      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_, Jdpdn, candidate.ref());
 
       canditateGenerationH_  = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
+      if (refractiveCalibration_) {
+        int ref_ind = mtState::template getId<mtState::_ref>();
+        canditateGenerationH_.col(ref_ind) = -Jdpdn;
+      }
       canditateGenerationPy_ = canditateGenerationH_*filterState.cov_*canditateGenerationH_.transpose();
       candidateGenerationES_.compute(canditateGenerationPy_);
     }
@@ -585,20 +619,189 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         {
           std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
         }
-        mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_);
+        Eigen::Matrix<double,2,1> Jdpdn;
+        mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_, Jdpdn, state.ref()); /* c_J_ is the jacobian defined in Camera.cpp*/ 
         F = -A_red_*c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
+
+
+        /**
+         * @brief Code for checking the observability of the refractive index and epipolar line
+         * 
+         */
+
+        Eigen::Vector3d translation = relativeCameraMotion_.block<3,1>(0,3);
+        Eigen::Matrix3d rotation = relativeCameraMotion_.block<3,3>(0,0);  // rotation matrix
+        
+
+        // find axis angle representation of the rotation
+        Eigen::AngleAxisd angleAxis(rotation);
+        Eigen::Vector3d axis = angleAxis.axis();
+        double angle = angleAxis.angle();
+        
+        Eigen::Matrix3d skew;
+
+        skew << 0, -translation(2), translation(1),
+                translation(2), 0, -translation(0),
+                -translation(1), translation(0), 0;
+
+        Eigen::Matrix3d EssentianlMatrix = skew*rotation.transpose();
+
+        Eigen::Vector3d point = featureOutput_.c().get_nor().getVec() / featureOutput_.c().get_nor().getVec()(2);
+
+        Eigen::Vector4d point_h;
+        point_h.head<3>() = point;
+        point_h(3) = 1.0;
+        Eigen::Vector4d point_h_ = relativeCameraMotion_*point_h;
+        point_h = point_h/point_h(2);
+        point_h_ = point_h_/point_h_(2);
+
+        Eigen::Vector3d epipolarLine = EssentianlMatrix.transpose() * point;
+        
+        Eigen::Vector2d epipolar_line_uvec;
+        Eigen::Vector2d delta_pixel;
+        epipolar_line_uvec(0) = epipolarLine(1);
+        epipolar_line_uvec(1) = -epipolarLine(0);
+        epipolar_line_uvec = epipolar_line_uvec.normalized();
+        
+        // let epipolar_line_uvec = point_h_.head<2>() - point.head<2>();
+        delta_pixel = point_h_.head<2>() - point_h.head<2>();
+        delta_pixel = delta_pixel.normalized();
+
+        // Plotting the epipolar line
+        cv::Point2f epipolar_line_end;
+        epipolar_line_end.x = featureOutput_.c().get_c().x + 50*epipolar_line_uvec(0);
+        epipolar_line_end.y = featureOutput_.c().get_c().y + 50*epipolar_line_uvec(1);
+        cv::line(drawImg_, featureOutput_.c().get_c(), epipolar_line_end, cv::Scalar(255, 10, 0), 1, 8, 0);
+
+        // Plotting the delta pixel
+        cv::Point2f delta_pixel_end;
+        delta_pixel_end.x = featureOutput_.c().get_c().x + 50*delta_pixel(0);
+        delta_pixel_end.y = featureOutput_.c().get_c().y + 50*delta_pixel(1);
+        cv::line(drawImg_, featureOutput_.c().get_c(), delta_pixel_end, cv::Scalar(0, 10, 255), 1, 8, 0);
+
+        Eigen::Vector2d tangent_vec;
+        tangent_vec(0) = -point(1);
+        tangent_vec(1) = point(0);
+        tangent_vec = tangent_vec.normalized();
+
+        cv::Point2f radial_line_end;
+        radial_line_end.x = featureOutput_.c().get_c().x - 50*tangent_vec(1);
+        radial_line_end.y = featureOutput_.c().get_c().y + 50*tangent_vec(0);
+        cv::line(drawImg_, featureOutput_.c().get_c(), radial_line_end, cv::Scalar(0, 255, 0), 1, 8, 0);
+
+
+        double cos_theta = epipolar_line_uvec.transpose()*tangent_vec;
+        double theta = acos(cos_theta);
+        double radius = point.head <2>().norm();
+
+        double metric = abs(sin(2*theta));
+        metric = pow(metric, 0.5)*pow(radius, 0.8);
+               
+        MXD F_temp(2, 2);
+        F_temp = A_red_;
+        F_temp = F_temp.transpose() * F_temp * 1.0 / updateNoiseInt_;
+        featureOutput_.c().setPixelCov(F_temp);
+
+        // Color of text changing linearly based on the metric
+        auto color = cv::Scalar(255*metric,0, 255*(1-metric));
+
+        featureOutput_.c().drawText(drawImg_, "___Obs" , color);
+        
+        bool line_cond = (featureOutput_.c().sigma1_/featureOutput_.c().sigma2_) > lineThresh_;
+
+        // to compute the jacobian for the refractive index
+        if (refractiveCalibration_){
+          int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
+          if (useObservabilityCheck_){
+            F.col(ref_ind) = -A_red_*Jdpdn*metric; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+          }
+          else{
+            F.col(ref_ind) = -A_red_*Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+          }
+
+          // to reject points with high sigma
+          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.025){
+            F.col(ref_ind) = F.col(ref_ind)*0.0;
+            featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
+          }
+
+        }
+
+        // to reject points update from a point if parallel to the epipolar line
+        if (line_cond){
+
+          // find angle between eigen vector and epipolar line
+          double cos_angle = featureOutput_.c().eigenVector2_.transpose()*epipolar_line_uvec;
+          // if (abs(cos_angle) > 0.7){
+          //   F = F*0.0;
+          //   featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 10, 255));
+          // }
+        }
+
+
+
       } else {
         F.setZero();
         cancelIteration_ = true;
       }
     } else {
       transformFeatureOutputCT_.jacTransform(featureOutputJac_,state);
-      if (featureOutput_.c().get_nor().getVec()(2) < 0.0)
+      if (featureOutput_.c().get_nor().getVec()(2) < 0.0)  // uses pixelToBearing
       {
         std::cout << "    \033[31mFeature " << ID << " from camera " << camID << " in camera " << activeCamID << " is behind the camera\033[0m" << std::endl;
       }
-      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_);
-      F = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);
+      Eigen::Matrix<double,2,1> Jdpdn;
+      mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_, Jdpdn, state.ref()); /* c_J_ is the jacobian defined in Camera.cpp*/ 
+      // mpMultiCamera_->cameras_[activeCamID].bearingToPixel(featureOutput_.c().get_nor(),c_temp_,c_J_); /* c_J_ is the jacobian defined in Camera.cpp*/ 
+      F = -c_J_*featureOutputJac_.template block<2,mtState::D_>(0,0);  /*shape of F here is row: 2, cols 36*/
+      
+      if (refractiveCalibration_){
+        int ref_ind = mtState::template getId<mtState::_ref>(); /* is the index for refractive index state*/
+        // std::cout << "relativeCameraMotion_ is " << relativeCameraMotion_ << std::endl;
+
+        // Observability analysis: may have bugs, need to fix, does not affect the code rn
+        
+        Eigen::Vector3d translation = relativeCameraMotion_.block<3,1>(0,3);
+        Eigen::Matrix3d rotation = relativeCameraMotion_.block<3,3>(0,0);
+        Eigen::Matrix3d skew;
+
+        skew << 0, -translation(2), translation(1),
+                translation(2), 0, -translation(0),
+                -translation(1), translation(0), 0;
+
+        Eigen::Matrix3d EssentianlMatrix = skew*rotation;
+
+        Eigen::Vector3d point = featureOutput_.c().get_nor().getVec() / featureOutput_.c().get_nor().getVec()(2);
+
+        Eigen::Vector3d epipolarLine = EssentianlMatrix.transpose() * point;
+        
+        Eigen::Vector2d epipolar_line_uvec;
+        epipolar_line_uvec(0) = epipolarLine(1);
+        epipolar_line_uvec(1) = -epipolarLine(0);
+        epipolar_line_uvec = epipolar_line_uvec.normalized();
+
+        Eigen::Vector2d tangent_vec;
+        tangent_vec(0) = -point(1);
+        tangent_vec(1) = point(0);
+        tangent_vec = tangent_vec.normalized();
+
+        double cos_theta = epipolar_line_uvec.transpose()*tangent_vec;
+        double theta = acos(cos_theta);
+        double radius = point.head <2>().norm();
+
+        double metric = abs(sin(2*theta));
+
+        F.col(ref_ind) = -Jdpdn; /* Jdpdn is the jacobian of bearing to pixel function w.r.t. refractive index*/
+
+        if (metric > nObservThersh_){
+          featureOutput_.c().drawText(drawImg_, "____High Obs" , cv::Scalar(255, 10, 0));
+        }
+        else{
+          featureOutput_.c().drawText(drawImg_, "____Low Obs" , cv::Scalar(10, 10, 255));
+        }
+
+      }
+
     }
   }
 
@@ -692,6 +895,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
     // Actualize camera extrinsics (gets also update in calls to TransformFeatureOutputCT)
     state.updateMultiCameraExtrinsics(mpMultiCamera_);
+    state.updateRefIndex(mpMultiCamera_);
 
     while(ID < mtState::nMax_ && foundValidMeasurement == false){
       if(filterState.fsm_.isValid_[ID]){
@@ -838,7 +1042,8 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
       if(removeNegativeFeatureAfterUpdate_){
         for(unsigned int i=0;i<mtState::nMax_;i++){
           if(filterState.fsm_.isValid_[i]){
-            if(filterState.state_.dep(i).getDistance() < 1e-8){
+            if(filterState.state_.dep(i).getDistance() < minAllowedFeatureDistance_ ||
+               filterState.state_.dep(i).getDistance() > maxAllowedFeatureDistance_){
               if(verbose_) std::cout << "    \033[33mRemoved feature " << filterState.fsm_.features_[i].idx_ << " with invalid distance parameter " << filterState.state_.dep(i).p_ << "!\033[0m" << std::endl;
               filterState.fsm_.isValid_[i] = false;
               filterState.resetFeatureCovariance(i,Eigen::Matrix3d::Identity());
@@ -940,8 +1145,9 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
     typename mtFilterState::mtState& state = filterState.state_;
     MXD& cov = filterState.cov_;
 
-    // Actualize camera extrinsics
+    // Actualize camera extrinsics and refractive index
     state.updateMultiCameraExtrinsics(mpMultiCamera_);
+    state.updateRefIndex(mpMultiCamera_);
 
     int countTracked = 0;
     // For all features in the state.

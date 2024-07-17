@@ -76,6 +76,7 @@ class LandmarkOutputImuCT:public LWF::CoordinateTransform<STATE,LandmarkOutput>{
   }
   void evalTransform(mtOutput& output, const mtInput& input) const{
     input.updateMultiCameraExtrinsics(mpMultiCamera_);
+    // input.updateRefIndex(mpMultiCamera_);
     // BrBP = BrBC + qCB^T(d_in*nor_in)
     const V3D CrCP = input.dep(ID_).getDistance()*input.CfP(ID_).get_nor().getVec();
     output.template get<mtOutput::_lmk>() = mpMultiCamera_->BrBC_[input.CfP(ID_).camID_] + mpMultiCamera_->qCB_[input.CfP(ID_).camID_].inverseRotate(CrCP);
@@ -83,6 +84,7 @@ class LandmarkOutputImuCT:public LWF::CoordinateTransform<STATE,LandmarkOutput>{
   void jacTransform(MXD& J, const mtInput& input) const{
     J.setZero();
     input.updateMultiCameraExtrinsics(mpMultiCamera_);
+    // input.updateRefIndex(mpMultiCamera_);
     const V3D CrCP = input.dep(ID_).getDistance()*input.CfP(ID_).get_nor().getVec();
     const Eigen::Matrix<double,3,2> J_CrCP_nor = input.dep(ID_).getDistance()*input.CfP(ID_).get_nor().getM();
     const Eigen::Matrix<double,3,1> J_CrCP_d = input.CfP(ID_).get_nor().getVec()*input.dep(ID_).getDistanceDerivative();
