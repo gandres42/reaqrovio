@@ -61,9 +61,9 @@ Init
         vel_0 0;			X-entry of initial velocity (robocentric, IMU) [m/s]
         vel_1 0;			Y-entry of initial velocity (robocentric, IMU) [m/s]
         vel_2 0;			Z-entry of initial velocity (robocentric, IMU) [m/s]
-        acb_0 0;			X-entry of accelerometer bias [m/s^2]
-        acb_1 0;			Y-entry of accelerometer bias [m/s^2]
-        acb_2 0;			Z-entry of accelerometer bias [m/s^2]
+        acb_0 -0.1;			X-entry of accelerometer bias [m/s^2]
+        acb_1 0.0;			Y-entry of accelerometer bias [m/s^2]
+        acb_2 0.1;			Z-entry of accelerometer bias [m/s^2]
         gyb_0 0;			X-entry of gyroscope bias [rad/s]
         gyb_1 0;			Y-entry of gyroscope bias [rad/s]
         gyb_2 0;			Z-entry of gyroscope bias [rad/s]
@@ -71,15 +71,16 @@ Init
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
         att_w 1;			W-entry of initial attitude (IMU to world, Hamilton)
+        ref 1.00;         Initialization for refractive index of the medium,     Overrides the value in the cam*.yaml files fix later
     }
     Covariance
     {
         pos_0 0.0001;		X-Covariance of initial position [m^2]
         pos_1 0.0001;		Y-Covariance of initial position [m^2]
         pos_2 0.0001;		Z-Covariance of initial position [m^2]
-        vel_0 1.0;			X-Covariance of initial velocity [m^2/s^2]
-        vel_1 1.0;			Y-Covariance of initial velocity [m^2/s^2]
-        vel_2 1.0;			Z-Covariance of initial velocity [m^2/s^2]
+        vel_0 0.1;			X-Covariance of initial velocity [m^2/s^2]
+        vel_1 0.1;			Y-Covariance of initial velocity [m^2/s^2]
+        vel_2 0.1;			Z-Covariance of initial velocity [m^2/s^2]
         acb_0 4e-4;			X-Covariance of initial accelerometer bias [m^2/s^4]
         acb_1 4e-4;			Y-Covariance of initial accelerometer bias [m^2/s^4]
         acb_2 4e-4;			Z-Covariance of initial accelerometer bias [m^2/s^4]
@@ -91,22 +92,28 @@ Init
         att_1 0.1;			Y-Covariance of initial attitude [rad^2]
         att_2 0.1;			Z-Covariance of initial attitude [rad^2]
         vea 0.01;			Covariance of initial rotational camera-IMU extrinsics, same for all entries [rad^2]
+        ref_0 0.000001          Covariance of initial refractive index
     }
 }
+
 ImgUpdate
-{
+{   
 	updateVecNormTermination 1e-4;
 	maxNumIteration 20;
     doPatchWarping true;										Should the patches be warped
     doFrameVisualisation false;									Should the frames be visualized
     publishFrames true;
-    showCandidates true;                                       Should the possible feature candidates be displayed
+    showCandidates false;                                       Should the possible feature candidates be displayed
     visualizePatches false;										Should the patches be visualized
     useDirectMethod true;										Should the EKF-innovation be based on direct intensity error (o.w. reprojection error)
-    startLevel 3;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
+    refractiveCalibration false;                                Online refractive index estimation to compensate for refractive distortion
+    useObservabilityCheck true;
+    nObservThersh  8.0;
+    lineThresh 4.0;
+    startLevel 2;												Highest patch level which is being employed (must be smaller than the hardcoded template parameter)
     endLevel 1;													Lowest patch level which is being employed
-    nDetectionBuckets 100;										Number of discretization buckets used during the candidates selection
-    MahalanobisTh 9.21;											Mahalanobis treshold for the update, 5.8858356
+    nDetectionBuckets 200;										Number of discretization buckets used during the candidates selection
+    MahalanobisTh 6.21;											Mahalanobis treshold for the update, 5.8858356
     UpdateNoise
     {
         pix 2;													Covariance used for the reprojection error, 1/focal_length is roughly 1 pixel std [rad] (~1/f ~ 1/400^2 = 1/160000)
@@ -115,7 +122,7 @@ ImgUpdate
     initCovFeature_0 0.5;										Covariance for the initial distance (Relative to initialization depth [m^2/m^2])
     initCovFeature_1 1e-5;										Covariance for the initial bearing vector, x-component [rad^2]
     initCovFeature_2 1e-5;										Covariance for the initial bearing vector, y-component [rad^2]
-    initDepth 0.5;												Initial value for the initial distance parameter
+    initDepth 1.0;												Initial value for the initial distance parameter
     startDetectionTh 0.8;										Threshold for detecting new features (min: 0, max: 1)
     scoreDetectionExponent 0.25;								Exponent used for weighting the distance between candidates
     penaltyDistance 100;										Maximal distance which gets penalized during bucketing [pix]
@@ -129,15 +136,15 @@ ImgUpdate
     removalFactor 1.1;											Factor for enforcing feature removal if not enough free
     minRelativeSTScore 0.75;									Minimum relative ST-score for extracting new feature patch
     minAbsoluteSTScore 5.0;										Minimum absolute ST-score for extracting new feature patch
-    minTimeBetweenPatchUpdate 0.5;								Minimum time between new multilevel patch extrection [s]
-    fastDetectionThreshold 5;									Fast corner detector treshold while adding new feature
+    minTimeBetweenPatchUpdate 1.0;								Minimum time between new multilevel patch extrection [s]
+    fastDetectionThreshold 16;									Fast corner detector treshold while adding new feature
     alignConvergencePixelRange 10;								Assumed convergence range for image alignment (gets scaled with the level) [pixels]
     alignCoverageRatio 2;										How many sigma of the uncertainty should be covered in the adaptive alignement
     alignMaxUniSample 1;										Maximal number of alignment seeds on one side -> total number of sample = 2n+1. Carefull can get very costly if diverging!
-    patchRejectionTh 50.0;										If the average itensity error is larger than this the feauture is rejected [intensity], if smaller 0 the no check is performed
+    patchRejectionTh 30.0;										If the average itensity error is larger than this the feauture is rejected [intensity], if smaller 0 the no check is performed
     alignmentHuberNormThreshold 10;								Intensity error threshold for Huber norm (enabled if > 0)
-    alignmentGaussianWeightingSigma -1;							Width of Gaussian which is used for pixel error weighting (enabled if > 0)
-    alignmentGradientExponent 0.0;								Exponent used for gradient based weighting of residuals
+    alignmentGaussianWeightingSigma 1;							Width of Gaussian which is used for pixel error weighting (enabled if > 0)
+    alignmentGradientExponent 0.5;								Exponent used for gradient based weighting of residuals
     useIntensityOffsetForAlignment true;						Should an intensity offset between the patches be considered
     useIntensitySqewForAlignment true;							Should an intensity sqew between the patches be considered
     removeNegativeFeatureAfterUpdate true;						Should feature with negative distance get removed
@@ -147,7 +154,8 @@ ImgUpdate
     noiseGainForOffCamera 10.0;									Factor added on update noise if not main camera
     discriminativeSamplingDistance 0.02;						Sampling distance for checking discriminativity of patch (if <= 0.0 no check is performed).
     discriminativeSamplingGain 1.1;								Gain for threshold above which the samples must lie (if <= 1.0 the patchRejectionTh is used).
-    maxAllowedFeatureDistance 25.0;                             Max allowed estimated feature distance after performing update, remove features with very far away estimated depth and clustered features during backward motion.
+    maxAllowedFeatureDistance 15.0;                             Max allowed estimated feature distance after performing update, remove features with very far away estimated depth and clustered features during backward motion.
+    minAllowedFeatureDistance 0.1;
     minTimeBeforeFeaDistCheck 1.0;                              Min time allowed in secd before maxAllowedFeatureDistance check is applied. Typically 1.0 second for camera at 20 Hz i.e. 20 updates have been applied
     useDepthFromLiDAR false;                                     Enable or Disable usage of LiDAR direct depth for features
     lidarDepthCalcMode_ 1;                                      Use Patch(0) or Line(1) for Depth Calculation
@@ -156,7 +164,7 @@ ImgUpdate
     directDepInitCovScaleFactor 1e-3;                           Factor to scale depth initialization covaraince in case of direct depth initialization
     MotionDetection
     {
-    	isEnabled 1;											Is the motion detection enabled
+    	isEnabled 0;											Is the motion detection enabled
 	    rateOfMovingFeaturesTh 0.5;								Amount of feature with motion for overall motion detection
 	    pixelCoordinateMotionTh 1.0;							Threshold for motion detection for patched [pixels]
 	    minFeatureCountForNoMotionDetection 5;					Min feature count in frame for motion detection
@@ -171,11 +179,14 @@ ImgUpdate
         }
         MahalanobisTh0 7.689997599999999;						Mahalanobid distance for zero velocity updates
         minNoMotionTime 0.25;									Min duration of no-motion
-        isEnabled 1;											Should zero velocity update be applied, only woroks if MotionDetectin.isEnabled is true
+        isEnabled 0;											Should zero velocity update be applied, only woroks if MotionDetectin.isEnabled is true
     }
 
     addGlobalBest true;                                         Should the best features of all cameras be added (true) or the best of each camera (false)
     histogramEqualize true;
+    medianBlur false;
+    bilateralBlur false;
+    medianKernelSize 3;
 }
 Prediction
 {
@@ -200,12 +211,13 @@ Prediction
         vea 1e-8;								Covariance parameter of rotational extrinsics prediction [rad^2/s]
         dep 0.0001;							    Covariance parameter of distance prediction [m^2/s]
         nor 0.00001;
+        ref_0 2.0e-6;                         Try 0.00002 or 0.000002
     }
     GravityVector
     {
         g_x 0.0;                                X-Component of gravity vector [m^2/s]
         g_y 0.0;                                Y-Component of gravity vector [m^2/s]
-        g_z 9.82171;                              Z-Component of gravity vector [m^2/s]
+        g_z -9.806;                              Z-Component of gravity vector [m^2/s]
     }
     MotionDetection
     {
