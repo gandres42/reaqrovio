@@ -705,7 +705,7 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
         // Color of text changing linearly based on the metric
         auto color = cv::Scalar(255*metric,0, 255*(1-metric));
 
-        featureOutput_.c().drawText(drawImg_, "___Obs" , color);
+        // featureOutput_.c().drawText(drawImg_, "___Obs" , color);
         
         bool line_cond = (featureOutput_.c().sigma1_/featureOutput_.c().sigma2_) > lineThresh_;
 
@@ -720,10 +720,10 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
           }
 
           // to reject points with high sigma
-          if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.025){
-            F.col(ref_ind) = F.col(ref_ind)*0.0;
-            featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
-          }
+          // if (featureOutput_.c().sigma1_ > nObservThersh_ || line_cond || angle > 0.025){
+          //   F.col(ref_ind) = F.col(ref_ind)*0.0;
+          //   featureOutput_.c().drawText(drawImg_, "_____Rejected" , cv::Scalar(0, 255, 0));
+          // }
 
         }
 
