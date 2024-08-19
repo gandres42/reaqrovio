@@ -636,7 +636,26 @@ class RovioNode{
     // Get image from msg
     cv_bridge::CvImagePtr cv_ptr;
     try {
-      cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::TYPE_8UC1);
+      if (img->encoding == sensor_msgs::image_encodings::MONO8) {
+        cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
+      } else if (img->encoding == sensor_msgs::image_encodings::MONO16) {
+        cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO16);
+      } else if (img->encoding == sensor_msgs::image_encodings::BGR8) {
+        cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
+      } else if (img->encoding == sensor_msgs::image_encodings::RGB8) {
+        cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::RGB8);
+      } else {
+        ROS_ERROR("Unsupported image encoding");
+        return;
+      }
+       // fix for color images
+      if (cv_ptr->image.channels() == 3) {
+        cv::Mat gray;
+        cv::cvtColor(cv_ptr->image, gray, cv::COLOR_BGR2GRAY);
+        // take blue channel as grayscale image
+        // cv::extractChannel(cv_ptr->image, gray, 0);
+        cv_ptr->image = gray;
+      }
     } catch (cv_bridge::Exception& e) {
       ROS_ERROR("cv_bridge exception: %s", e.what());
       return;

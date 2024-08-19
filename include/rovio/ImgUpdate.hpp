@@ -1249,16 +1249,16 @@ ImgOutlierDetection<typename FILTERSTATE::mtState>,false>{
 
         const double t2 = (double) cv::getTickCount();
         if(verbose_) std::cout << "== Detected " << candidates_[camID].size() << " candidates in Camera" << camID << " on levels " << endLevel_ << "-" << startLevel_ << " (" << (t2-t1)/cv::getTickFrequency()*1000 << " ms)" << std::endl;
-
+        
         // visualization of detected candidates
-        if((doFrameVisualisation_ || publishFrames_) && showCandidates_){
+        if (candidates_[camID].size() > 0 && (doFrameVisualisation_ || publishFrames_)) {
           for(int i=0;i<candidates_[camID].size();i++){
-            candidates_[camID][i].drawPoint(filterState.img_[camID], cv::Scalar(255,0,0));
+            candidates_[camID][i].drawPoint(filterState.img_[camID], cv::Scalar(0,0,255));
           }
         }
       }
 
-      if(addGlobalBest_){
+      if(addGlobalBest_ && candidates_[0].size() > 0){
         const double t2 = (double) cv::getTickCount();
         std::unordered_set<unsigned int> newSet = filterState.fsm_.addBestGlobalCandidates(candidates_,meas.aux().pyr_,filterState.t_,
                                                                   endLevel_,startLevel_,(mtState::nMax_-filterState.fsm_.getValidCount()),nDetectionBuckets_, scoreDetectionExponent_,
