@@ -64,9 +64,9 @@ Init
         acb_0 -0.1;			X-entry of accelerometer bias [m/s^2]
         acb_1 0.0;			Y-entry of accelerometer bias [m/s^2]
         acb_2 0.1;			Z-entry of accelerometer bias [m/s^2]
-        gyb_0 0;			X-entry of gyroscope bias [rad/s]
-        gyb_1 0;			Y-entry of gyroscope bias [rad/s]
-        gyb_2 0;			Z-entry of gyroscope bias [rad/s]
+        gyb_0 0.0008;			X-entry of gyroscope bias [rad/s]
+        gyb_1 0.0045;			Y-entry of gyroscope bias [rad/s]
+        gyb_2 0.00018;			Z-entry of gyroscope bias [rad/s]
         att_x 0;			X-entry of initial attitude (IMU to world, Hamilton)
         att_y 0;			Y-entry of initial attitude (IMU to world, Hamilton)
         att_z 0;			Z-entry of initial attitude (IMU to world, Hamilton)
@@ -84,9 +84,9 @@ Init
         acb_0 4e-4;			X-Covariance of initial accelerometer bias [m^2/s^4]
         acb_1 4e-4;			Y-Covariance of initial accelerometer bias [m^2/s^4]
         acb_2 4e-4;			Z-Covariance of initial accelerometer bias [m^2/s^4]
-        gyb_0 3e-4;			X-Covariance of initial gyroscope bias [rad^2/s^2]
-        gyb_1 3e-4;			Y-Covariance of initial gyroscope bias [rad^2/s^2]
-        gyb_2 3e-4;			Z-Covariance of initial gyroscope bias [rad^2/s^2]
+        gyb_0 2e-8;			X-Covariance of initial gyroscope bias [rad^2/s^2]
+        gyb_1 2e-8;			Y-Covariance of initial gyroscope bias [rad^2/s^2]
+        gyb_2 2e-8;			Z-Covariance of initial gyroscope bias [rad^2/s^2]
         vep 0.0001;			Covariance of initial linear camera-IMU extrinsics, same for all entries [m^2]
         att_0 0.1;			X-Covariance of initial attitude [rad^2]
         att_1 0.1;			Y-Covariance of initial attitude [rad^2]
@@ -271,9 +271,9 @@ VelocityUpdate
 {
     UpdateNoise
     {
-        vel_0 0.0001
-        vel_1 0.0001
-        vel_2 0.0001
+        vel_0 1.0
+        vel_1 1.0
+        vel_2 1.0
     }
     MahalanobisTh0 7.689997599999999
     qAM_x 0
