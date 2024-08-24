@@ -571,7 +571,7 @@ class RovioNode{
           break;
         }
         case FilterInitializationState::State::WaitForInitRefractiveIndex: {
-          std::cout << "-- Filter: Initializing using refractive index ..." << std::endl;
+          std::cout << "-- Filter: Initializing using refractive index (experimental, relocates to origin, DO NOT USE ON ROBOT) ..." << std::endl;
           mpFilter_->resetWithRefractiveIndex(init_state_.refractiveIndex_, imu_msg->header.stamp.toSec()+imu_offset_);
           break;
         }
