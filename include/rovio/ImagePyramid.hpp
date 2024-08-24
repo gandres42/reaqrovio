@@ -149,10 +149,9 @@ class ImagePyramid{
     feature_detector_fast->detect(imgs_[l], keypoints);
 
     if (keypoints.size() == 0) {
-      std::cout << "No keypoints detected, lowering fast threshold" << std::endl;
-      feature_detector_fast = cv::FastFeatureDetector::create(15, true, cv::FastFeatureDetector::TYPE_9_16);
+      // std::cout << "No keypoints detected, lowering fast threshold" << std::endl;
+      feature_detector_fast = cv::FastFeatureDetector::create(std::max(detectionThreshold - 10, 4), true, cv::FastFeatureDetector::TYPE_9_16);
       feature_detector_fast->detect(imgs_[l], keypoints);
-      std::cout << "keypoints.size(): " << keypoints.size() << std::endl;
     }
 
 
