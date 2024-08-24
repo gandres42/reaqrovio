@@ -211,14 +211,10 @@ class VelocityUpdate: public LWF::Update<VelocityInnovation,FILTERSTATE,Velocity
     updnoiP_ = meas.measuredVelCov();
     
   }
-  // void postProcess(mtFilterState& filterstate, const mtMeas& meas, const mtOutlierDetection& outlierDetection, bool& isFinished){
-  //   mtState& state = filterstate.state_;
-  //   isFinished = true;
-  //   // WrWC = qWI*(IrIV - qWI^T*qWM*MrMV -IrIW) +qWM*MrMC
-  //   state.aux().poseMeasLin_ = get_qWI(state).rotate(V3D(meas.pos()-(get_qWI(state).inverted()*state.qWM()).rotate(get_MrMV(state))-get_IrIW(state)))+state.template get<mtState::_att>().rotate(state.MrMC(0));
-  //   // qCW = qCM*qVM^T*qVI*qWI^T;
-  //   state.aux().poseMeasRot_ = state.qCM(0)*get_qVM(state).inverted()*meas.att()*get_qWI(state).inverted();
-  // }
+  void postProcess(mtFilterState& filterstate, const mtMeas& meas, const mtOutlierDetection& outlierDetection, bool& isFinished){
+    mtState& state = filterstate.state_;
+    isFinished = true;
+  }
 
 };
 
