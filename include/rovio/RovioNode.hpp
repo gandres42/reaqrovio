@@ -51,6 +51,7 @@
 #include <image_transport/image_transport.h>
 
 #include <rovio/SrvResetToPose.h>
+#include <rovio/SrvResetToRefractiveIndex.h>
 #include "rovio/RovioFilter.hpp"
 #include "rovio/HealthMonitor.hpp"
 #include "rovio/CoordinateTransform/RovioOutput.hpp"
@@ -105,6 +106,8 @@ class RovioNode{
       WaitForInitUsingAccel,
       // Initialize the filter using an external pose on the next opportunity.
       WaitForInitExternalPose,
+      // Initialize the filter using a refractive index on the next opportunity.
+      WaitForInitRefractiveIndex,
       // The filter is initialized.
       Initialized
     } state_;
@@ -113,6 +116,7 @@ class RovioNode{
     // with the state WaitForInitExternalPose.
     V3D WrWM_;
     QPD qMW_;
+    float refractiveIndex_;
 
     explicit operator bool() const {
       return isInitialized();
@@ -149,6 +153,7 @@ class RovioNode{
   ros::Subscriber subVelocity_;
   ros::ServiceServer srvResetFilter_;
   ros::ServiceServer srvResetToPoseFilter_;
+  ros::ServiceServer srvResetToRefractiveIndexFilter_;
   ros::Publisher pubOdometry_;
   ros::Publisher pubTransform_;
   ros::Publisher pubPoseWithCovStamped_;
@@ -261,6 +266,7 @@ class RovioNode{
     // Initialize ROS service servers.
     srvResetFilter_ = nh_.advertiseService("rovio/reset", &RovioNode::resetServiceCallback, this);
     srvResetToPoseFilter_ = nh_.advertiseService("rovio/reset_to_pose", &RovioNode::resetToPoseServiceCallback, this);
+    srvResetToRefractiveIndexFilter_ = nh_.advertiseService("rovio/reset_to_refractive_index", &RovioNode::resetToRefractiveIndexServiceCallback, this);
 
     // Advertise topics
     pubTransform_ = nh_.advertise<geometry_msgs::TransformStamped>("rovio/transform", 1);
@@ -299,7 +305,7 @@ class RovioNode{
     nh_private_.param("camera_frame", camera_frame_, camera_frame_);
     nh_private_.param("imu_frame", imu_frame_, imu_frame_);
 
-    nh_private_.param("imu_offset", imu_offset_, -0.00177);
+    nh_private_.param("imu_offset", imu_offset_, 0.0);  
 
       //CLAHE
     nh_private_.param("histogram_equalize_8bit_images", histogram_equalize_8bit_images_, true);
@@ -562,6 +568,11 @@ class RovioNode{
         case FilterInitializationState::State::WaitForInitUsingAccel: {
           std::cout << "-- Filter: Initializing using accel. measurement ..." << std::endl;
           mpFilter_->resetWithAccelerometer(predictionMeas_.template get<mtPredictionMeas::_acc>(),imu_msg->header.stamp.toSec()+imu_offset_);
+          break;
+        }
+        case FilterInitializationState::State::WaitForInitRefractiveIndex: {
+          std::cout << "-- Filter: Initializing using refractive index ..." << std::endl;
+          mpFilter_->resetWithRefractiveIndex(init_state_.refractiveIndex_, imu_msg->header.stamp.toSec()+imu_offset_);
           break;
         }
         default: {
@@ -835,6 +846,14 @@ class RovioNode{
     return true;
   }
 
+  /** \brief ROS service handler for resetting the filter to a given refractive index.
+   */
+  bool resetToRefractiveIndexServiceCallback(rovio::SrvResetToRefractiveIndex::Request& request,
+                                           rovio::SrvResetToRefractiveIndex::Response& /*response*/){
+    requestResetRefractiveIndex(request.n);
+    return true;
+  }
+
   /** \brief Reset the filter when the next IMU measurement is received.
    *         The orientaetion is initialized using an accel. measurement.
    */
@@ -863,6 +882,20 @@ class RovioNode{
     init_state_.WrWM_ = WrWM;
     init_state_.qMW_ = qMW;
     init_state_.state_ = FilterInitializationState::State::WaitForInitExternalPose;
+  }
+
+  /** \brief Reset the filter when the next IMU measurement is received.
+   *       The refractive index is set to the passed value.
+   *        @param n - Refractive index.
+   */
+  void requestResetRefractiveIndex(const double n) {
+    std::lock_guard<std::mutex> lock(m_filter_);
+    if (!init_state_.isInitialized()) {
+      std::cout << "Reinitialization already triggered. Ignoring request...";
+      return;
+    }
+    init_state_.refractiveIndex_ = n;
+    init_state_.state_ = FilterInitializationState::State::WaitForInitRefractiveIndex;
   }
 
   /** \brief Executes the update step of the filter and publishes the updated data.

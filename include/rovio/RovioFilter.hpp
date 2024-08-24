@@ -236,6 +236,15 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     reset(t);
   }
 
+  /** \brief Reset the filter with the external refractive index.
+   *  @param refractive_index - Refractive index of the medium.
+  */
+
+  void resetWithRefractiveIndex(double refractive_index, double t = 0.0){
+    init_.initWithRefIndex(refractive_index);
+    reset(t);
+  }
+
   /** \brief Sets the transformation between IMU and Camera.
    *
    *  @param R_VM  -  Rotation matrix, expressing the orientation of the IMU  in Camera Cooridinates (IMU Coordinates -> Camera Coordinates).

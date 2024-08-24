@@ -622,6 +622,14 @@ class FilterState: public LWF::FilterState<State<nMax,nLevels,patchSize,nCam,nPo
     state_.qWM()  = qMW.inverted();
   }
 
+  /** \brief Initializes the FilterState \ref Base::state_ with the refractive index.
+   * @param ref - Refractive index.
+   */
+  void initWithRefIndex(double ref){
+    state_.ref() = ref;
+  }
+  
+
   /** \brief Initializes the FilterState \ref Base::state_ with the Acceleration-Vector.
    *
    *  @param fMeasInit - Acceleration-Vector which should be used for initializing the attitude of the IMU.
