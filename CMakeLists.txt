@@ -1,7 +1,7 @@
 cmake_minimum_required (VERSION 2.6)
 project(rovio)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -march=native")
-set(ROVIO_NMAXFEATURE 40 CACHE STRING "Number of features for ROVIO")
+set(ROVIO_NMAXFEATURE 15 CACHE STRING "Number of features for ROVIO")
 set(ROVIO_NCAM 4 CACHE STRING "Number of enabled cameras")
 set(ROVIO_NLEVELS 4 CACHE STRING "Number of image leavels for the features")
 set(ROVIO_PATCHSIZE 8 CACHE STRING "Size of patch (edge length in pixel)")
@@ -74,7 +74,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_service_files(
   DIRECTORY srv
-  FILES SrvResetToPose.srv
+  FILES SrvResetToPose.srv SrvResetToRefractiveIndex.srv
 )
 
 generate_messages(DEPENDENCIES
