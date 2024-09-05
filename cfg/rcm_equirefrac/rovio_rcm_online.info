@@ -281,3 +281,13 @@ VelocityUpdate
     qAM_z 0
     qAM_w 1
 }
+BaroUpdate
+{
+    UpdateNoise
+    {
+        pos_0 1.0 
+        pos_1 1.0
+        pos_2 1.0
+    }
+    MahalanobisTh0 12.6511204
+}

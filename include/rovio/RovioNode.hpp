@@ -43,6 +43,7 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/Imu.h>
+#include <sensor_msgs/FluidPressure.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <std_srvs/Empty.h>
 #include <tf/transform_broadcaster.h>
@@ -76,22 +77,32 @@ class RovioNode{
   typedef typename mtFilterState::mtState mtState;
   typedef typename mtFilter::mtPrediction::mtMeas mtPredictionMeas;
   mtPredictionMeas predictionMeas_;
+
+  // Image Update
   typedef typename std::tuple_element<0,typename mtFilter::mtUpdates>::type mtImgUpdate;
   typedef typename mtImgUpdate::mtMeas mtImgMeas;
   mtImgMeas imgUpdateMeas_;
   mtImgUpdate* mpImgUpdate_;
+
+  // Pose Update 
   typedef typename std::tuple_element<1,typename mtFilter::mtUpdates>::type mtPoseUpdate;
   typedef typename mtPoseUpdate::mtMeas mtPoseMeas;
   mtPoseMeas poseUpdateMeas_;
   mtPoseUpdate* mpPoseUpdate_;
-  typedef typename std::tuple_element<2,typename mtFilter::mtUpdates>::type mtVelocityUpdate;
-  typedef typename mtVelocityUpdate::mtMeas mtVelocityMeas;
-  
-  //Changes by Mohit
-  typedef typename mtVelocityUpdate::mtNoise mtVelocityNoise;
 
+  // Velocity Update  
+  typedef typename std::tuple_element<2,typename mtFilter::mtUpdates>::type mtVelocityUpdate;
+  typedef typename mtVelocityUpdate::mtMeas mtVelocityMeas;  
+  typedef typename mtVelocityUpdate::mtNoise mtVelocityNoise;
   mtVelocityMeas velocityUpdateMeas_;
   mtVelocityNoise velocityUpdateNoise_;
+  // mtVelocityUpdate* mpVelocityUpdate_;
+
+  // Baro Update
+  typedef typename std::tuple_element<3,typename mtFilter::mtUpdates>::type mtBaroUpdate;
+  typedef typename mtBaroUpdate::mtMeas mtBaroMeas;
+  mtBaroMeas baroUpdateMeas_;
+  // mtBaroUpdate* mpBaroUpdate_;
 
   RovioHealthMonitor healthMonitor_;
 
@@ -151,6 +162,7 @@ class RovioNode{
   ros::Subscriber subGroundtruth_;
   ros::Subscriber subGroundtruthOdometry_;
   ros::Subscriber subVelocity_;
+  ros::Subscriber subBaro_;
   ros::ServiceServer srvResetFilter_;
   ros::ServiceServer srvResetToPoseFilter_;
   ros::ServiceServer srvResetToRefractiveIndexFilter_;
@@ -230,6 +242,10 @@ class RovioNode{
   Eigen::Matrix4d relative_pose_ = Eigen::Matrix4d::Identity();
   tf::StampedTransform last_imu_tf_;
 
+  // Barometer
+  bool baro_offset_initialized_ = false;
+  double baro_offset_ = 0.0;
+
 
   /** \brief Constructor
    */
@@ -262,6 +278,7 @@ class RovioNode{
     subGroundtruth_ = nh_.subscribe("pose", 1000, &RovioNode::groundtruthCallback,this);
     subGroundtruthOdometry_ = nh_.subscribe("odometry", 1000, &RovioNode::groundtruthOdometryCallback, this);
     subVelocity_ = nh_.subscribe("/abss_cov_epistemic/twist", 1000, &RovioNode::velocityCallback,this);
+    subBaro_ = nh_.subscribe("/underwater_pressure", 1000, &RovioNode::baroCallback,this);
 
     // Initialize ROS service servers.
     srvResetFilter_ = nh_.advertiseService("rovio/reset", &RovioNode::resetServiceCallback, this);
@@ -832,6 +849,30 @@ class RovioNode{
                             std_srvs::Empty::Response& /*response*/){
     requestReset();
     return true;
+  }
+
+  /** \brief Callback for static barometer pressure for underwater (can be used for ariel later) */  
+  void baroCallback(const sensor_msgs::FluidPressure::ConstPtr& barometer){
+    std::lock_guard<std::mutex> lock(m_filter_);
+    if(init_state_.isInitialized()){
+
+      double depth = -(barometer->fluid_pressure - 2660.0) / 241.0;  // 241 for sea
+      std::cout << "Depth: " << depth << std::endl;
+
+      if (!baro_offset_initialized_) {
+        baro_offset_ = imuOutput_.WrWB()(2) - depth;
+        baro_offset_initialized_ = true;
+      }
+      else{
+        depth += baro_offset_;
+        Eigen::Vector3d JrJV(0.0,0.0,depth);
+        baroUpdateMeas_.pos() = JrJV;
+        mpFilter_->template addUpdateMeas<3>(baroUpdateMeas_,barometer->header.stamp.toSec());
+        updateAndPublish(false);
+      }
+      
+
+    }
   }
 
   /** \brief ROS service handler for resetting the filter to a given pose.

@@ -35,6 +35,7 @@
 #include "rovio/ImgUpdate.hpp"
 #include "rovio/PoseUpdate.hpp"
 #include "rovio/VelocityUpdate.hpp"
+#include "rovio/BaroUpdate.hpp"
 #include "rovio/ImuPrediction.hpp"
 #include "rovio/MultiCamera.hpp"
 
@@ -47,12 +48,14 @@ template<typename FILTERSTATE>
 class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
                                          ImgUpdate<FILTERSTATE>,
                                          PoseUpdate<FILTERSTATE,(int)(FILTERSTATE::mtState::nPose_>0)-1,(int)(FILTERSTATE::mtState::nPose_>1)*2-1>,
-                                         VelocityUpdate<FILTERSTATE>>{
+                                         VelocityUpdate<FILTERSTATE>,
+                                         BaroUpdate<FILTERSTATE,(int)(FILTERSTATE::mtState::nPose_>0)-1,(int)(FILTERSTATE::mtState::nPose_>1)*2-1>>{
  public:
   typedef LWF::FilterBase<ImuPrediction<FILTERSTATE>,
                           ImgUpdate<FILTERSTATE>,
                           PoseUpdate<FILTERSTATE,(int)(FILTERSTATE::mtState::nPose_>0)-1,(int)(FILTERSTATE::mtState::nPose_>1)*2-1>,
-                          VelocityUpdate<FILTERSTATE>> Base;
+                          VelocityUpdate<FILTERSTATE>,
+                          BaroUpdate<FILTERSTATE,(int)(FILTERSTATE::mtState::nPose_>0)-1,(int)(FILTERSTATE::mtState::nPose_>1)*2-1>> Base;
   using Base::init_;
   using Base::reset;
   using Base::predictionTimeline_;
@@ -87,6 +90,8 @@ class RovioFilter:public LWF::FilterBase<ImuPrediction<FILTERSTATE>,
     subHandlers_["PoseUpdate"] = &std::get<1>(mUpdates_);
     subHandlers_.erase("Update2");
     subHandlers_["VelocityUpdate"] = &std::get<2>(mUpdates_);
+    subHandlers_.erase("Update3");
+    subHandlers_["BaroUpdate"] = &std::get<3>(mUpdates_);
     boolRegister_.registerScalar("Common.doVECalibration",init_.state_.aux().doVECalibration_);
     intRegister_.registerScalar("Common.depthType",depthTypeInt_);
 
