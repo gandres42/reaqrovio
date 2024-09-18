@@ -691,6 +691,9 @@ class RovioNode{
     cv::Mat cv_img;
     cv_ptr->image.copyTo(cv_img);
 
+    // multiply image by 0.5 to dim it
+    // cv_img = cv_img * 0.5;
+
     if (mpImgUpdate_->histogramEqualize_) {
       //Check if input image is actually 8-bit
       double imgMin, imgMax;
@@ -857,7 +860,6 @@ class RovioNode{
     if(init_state_.isInitialized()){
 
       double depth = -(barometer->fluid_pressure - 2660.0) / 241.0;  // 241 for sea
-      std::cout << "Depth: " << depth << std::endl;
 
       if (!baro_offset_initialized_) {
         baro_offset_ = imuOutput_.WrWB()(2) - depth;

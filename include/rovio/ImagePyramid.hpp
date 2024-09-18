@@ -174,9 +174,6 @@ class ImagePyramid{
                 levelTranformCoordinates(FeatureCoordinates(cv::Point2f(it->pt.x, it->pt.y)),l,0));
       }
     }
-    else {
-      std::cout << "No keypoints detected" << std::endl;
-    }
   }
 };
 
