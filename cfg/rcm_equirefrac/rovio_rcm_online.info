@@ -81,9 +81,9 @@ Init
         vel_0 0.1;			X-Covariance of initial velocity [m^2/s^2]
         vel_1 0.1;			Y-Covariance of initial velocity [m^2/s^2]
         vel_2 0.1;			Z-Covariance of initial velocity [m^2/s^2]
-        acb_0 4e-4;			X-Covariance of initial accelerometer bias [m^2/s^4]
-        acb_1 4e-4;			Y-Covariance of initial accelerometer bias [m^2/s^4]
-        acb_2 4e-4;			Z-Covariance of initial accelerometer bias [m^2/s^4]
+        acb_0 5e-4;			X-Covariance of initial accelerometer bias [m^2/s^4]
+        acb_1 5e-4;			Y-Covariance of initial accelerometer bias [m^2/s^4]
+        acb_2 5e-4;			Z-Covariance of initial accelerometer bias [m^2/s^4]
         gyb_0 2e-8;			X-Covariance of initial gyroscope bias [rad^2/s^2]
         gyb_1 2e-8;			Y-Covariance of initial gyroscope bias [rad^2/s^2]
         gyb_2 2e-8;			Z-Covariance of initial gyroscope bias [rad^2/s^2]
@@ -285,9 +285,9 @@ BaroUpdate
 {
     UpdateNoise
     {
-        pos_0 1.0 
-        pos_1 1.0
-        pos_2 1.0
+        pos_0 0.5 
+        pos_1 0.5
+        pos_2 0.5
     }
     MahalanobisTh0 12.6511204
 }
