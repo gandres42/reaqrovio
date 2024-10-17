@@ -11,7 +11,7 @@ Paper:
 3) **Multi-camera**: Extending unified refractive index estimation with odometry from multiple synchronized cameras.
 
 ## Multi-Camera Underwater Dataset
-ReAqROIO can be tested on our open-source [Multi Camera Underwater Visual Inertial Dataset](https://github.com/ntnu-arl/underwater-datasets?tab=readme-ov-file#subset-3-trajectories-with-ground-truth-from-motion-capture). We use the **3rd subset** of the dataset for our experiments in this work.
+ReAqROVIO can be tested on our open-source [Multi Camera Underwater Visual Inertial Dataset](https://github.com/ntnu-arl/underwater-datasets?tab=readme-ov-file#subset-3-trajectories-with-ground-truth-from-motion-capture). We use the **3rd subset** of the dataset for our experiments in this work.
 
 ## [YouTube](https://www.youtube.com/watch?v=i9Cz8xE-0RI&ab_channel=KostasAlexis) Video
 
