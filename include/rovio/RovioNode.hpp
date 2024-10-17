@@ -244,7 +244,9 @@ class RovioNode{
 
   // Barometer
   bool baro_offset_initialized_ = false;
-  double baro_offset_ = 0.0;
+  double baro_depth_offset_ = 0.0;
+  double baro_pressure_offset_ = 2660.0;
+  double baro_pressure_scale_ = 241.0;
 
 
   /** \brief Constructor
@@ -859,14 +861,14 @@ class RovioNode{
     std::lock_guard<std::mutex> lock(m_filter_);
     if(init_state_.isInitialized()){
 
-      double depth = -(barometer->fluid_pressure - 2660.0) / 241.0;  // 241 for sea
+      double depth = -(barometer->fluid_pressure - baro_pressure_offset_) / baro_pressure_scale_; 
 
       if (!baro_offset_initialized_) {
-        baro_offset_ = imuOutput_.WrWB()(2) - depth;
+        baro_depth_offset_ = imuOutput_.WrWB()(2) - depth;
         baro_offset_initialized_ = true;
       }
       else{
-        depth += baro_offset_;
+        depth += baro_depth_offset_;
         Eigen::Vector3d JrJV(0.0,0.0,depth);
         baroUpdateMeas_.pos() = JrJV;
         mpFilter_->template addUpdateMeas<3>(baroUpdateMeas_,barometer->header.stamp.toSec());
