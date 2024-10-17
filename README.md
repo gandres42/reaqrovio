@@ -1,6 +1,6 @@
 # ReAqROVIO: Refractive Aquatic ROVIO #
 
-This repository contains the implementation of the work [Online refractive camera model calibration in visual inertial odometry](https://www.arxiv.org/abs/2409.12074). The method enables Visual Inertial Odometry (VIO) underwater without the need of camera calibration in the water. The cameras are only calirated in air and the refractive distortion due to water is rectified online by estimating the refractive index in the state of the Iterated Extended Kalman Filter. The work is developed over ROVIO.
+This repository contains the implementation of the work [Online refractive camera model calibration in visual-inertial odometry](https://www.arxiv.org/abs/2409.12074). The method enables Visual-Inertial Odometry (VIO) underwater without the need of camera calibration in the water. The cameras are only calirated in air and the refractive distortion due to water is rectified online by estimating the refractive index in the state of the Iterated Extended Kalman Filter. The work is developed over ROVIO.
 
 Paper:
 * https://doi.org/10.48550/arXiv.2409.12074 (IROS 2024)
@@ -11,7 +11,7 @@ Paper:
 3) **Multi-camera**: Extending unified refractive index estimation with odometry from multiple synchronized cameras.
 
 ## Multi-Camera Underwater Dataset
-ReAqROVIO can be tested on our open-source [Multi Camera Underwater Visual Inertial Dataset](https://github.com/ntnu-arl/underwater-datasets?tab=readme-ov-file#subset-3-trajectories-with-ground-truth-from-motion-capture). We use the **3rd subset** of the dataset for our experiments in this work.
+ReAqROVIO can be tested on our open-source [Multi Camera Underwater Visual-Inertial Dataset](https://github.com/ntnu-arl/underwater-datasets?tab=readme-ov-file#subset-3-trajectories-with-ground-truth-from-motion-capture). We use the **3rd subset** of the dataset for our experiments in this work.
 
 ## [YouTube](https://www.youtube.com/watch?v=i9Cz8xE-0RI&ab_channel=KostasAlexis) Video
 
@@ -87,8 +87,21 @@ To tune the convergence of the refractive index, following noise parameter can b
 ```
 Prediction.PredictionNoise.ref_0 2.0e-6;
 ```
+### Running Launch file
+* Terminal 1
+```
+roslaunch rovio sim_core.launch
+```
+* Terminal 2
+```
+rosbag play <path to dataset>/Traj1/* --topics /alphasense_driver_ros/cam0 /alphasense_driver_ros/cam1 /alphasense_driver_ros/imu --clock
+```
+* Terminal 3
+```
+roslaunch rovio rovio_rcm.launch
+```
 ## Potential issues and fixes
-* Incase ```git submodule update fails``` please clone ```git@github.com:Mohit505Git/lightweight_filtering.git``` in the lightweight_filter directory.
+* In case ```git submodule update fails``` please clone ```git@github.com:Mohit505Git/lightweight_filtering.git``` in the lightweight_filter directory.
 * If any incorrect syntax is present in the .info file, then this leads to formation of a default new info file as .info_new and rovio may fail. Delete the .info_new file and retry with correct syntax.
 * Continous synchronization failed error may arise due to mismatch in the topics played from the rosbag file and number or camera set in the CMakeList.
 
