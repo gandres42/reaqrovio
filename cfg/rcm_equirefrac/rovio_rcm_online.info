@@ -3,53 +3,20 @@
 Common
 {
 	doVECalibration false;		Should the camera-IMU extrinsics be calibrated online
-	depthType 1;				Type of depth parametrization (0: normal, 1: inverse depth, 2: log, 3: hyperbolic)
+	depthType 0;				Type of depth parametrization (0: normal, 1: inverse depth, 2: log, 3: hyperbolic)
 	verbose false;				Is the verbose active
     healthCheck false;
 }
 Camera0
 {
 	CalibrationFile ;												Camera-Calibration file for intrinsics
-qCM_x   0.5027695156557828;
-qCM_y   0.5002145141495467;
-qCM_z   0.49690290362200085;
-qCM_w   -0.5000957491655045;
-MrMC_x  0.04839478648122993;
-MrMC_y  0.04799781122813299;
-MrMC_z  -0.009770663739786307;		Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
-}
-Camera1
-{
-	CalibrationFile ;											Camera-Calibration file for intrinsics
-qCM_x   0.5012988172354748;
-qCM_y   0.5016255574437579;
-qCM_z   0.49890775228581163;
-qCM_w   -0.4981589612429676;
-MrMC_x  0.048237501240676856;
-MrMC_y  -0.061764582782547824;
-MrMC_z  -0.009825100578084466;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
-}
-Camera2
-{
-	CalibrationFile ;											Camera-Calibration file for intrinsics
-  qCM_x  -0.0009167582865964925;                               X-entry of IMU to Camera quaterion (Hamilton)
-  qCM_y  -0.7043791426640383;                               Y-entry of IMU to Camera quaterion (Hamilton)
-  qCM_z  -0.7098212703577009;                               Z-entry of IMU to Camera quaterion (Hamilton)
-  qCM_w  0.001716706701214801;                               W-entry of IMU to Camera quaterion (Hamilton)
-  MrMC_x -0.01251879225078356;                               X-entry of IMU to Camera vector (expressed in IMU CF) [m]
-  MrMC_y 0.06448814833479437;                               Y-entry of IMU to Camera vector (expressed in IMU CF) [m]
-  MrMC_z -0.008369672575341852;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
-}
-Camera3
-{
-	CalibrationFile ;											Camera-Calibration file for intrinsics
-  qCM_x  -0.7042796203965197;                               X-entry of IMU to Camera quaterion (Hamilton)
-  qCM_y  -0.0056066301493915074;                               Y-entry of IMU to Camera quaterion (Hamilton)
-  qCM_z  -0.0002588318023132062;                               Z-entry of IMU to Camera quaterion (Hamilton)
-  qCM_w  0.7099004965476502;                               W-entry of IMU to Camera quaterion (Hamilton)
-  MrMC_x -0.012207092408876803;                               X-entry of IMU to Camera vector (expressed in IMU CF) [m]
-  MrMC_y -0.07977735354830874;                               Y-entry of IMU to Camera vector (expressed in IMU CF) [m]
-  MrMC_z -0.009780339233034521;										Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
+qCM_x   -0.5;
+qCM_y   0.5;
+qCM_z   -0.5;
+qCM_w   -0.5;
+MrMC_x  0.210;
+MrMC_y  0.0;
+MrMC_z  0.067;		Z-entry of IMU to Camera vector (expressed in IMU CF) [m]
 }
 Init
 {
@@ -164,7 +131,7 @@ ImgUpdate
     directDepInitCovScaleFactor 1e-3;                           Factor to scale depth initialization covaraince in case of direct depth initialization
     MotionDetection
     {
-    	isEnabled 0;											Is the motion detection enabled
+    	isEnabled 1;											Is the motion detection enabled
 	    rateOfMovingFeaturesTh 0.5;								Amount of feature with motion for overall motion detection
 	    pixelCoordinateMotionTh 1.0;							Threshold for motion detection for patched [pixels]
 	    minFeatureCountForNoMotionDetection 5;					Min feature count in frame for motion detection
